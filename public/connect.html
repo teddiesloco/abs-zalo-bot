@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <meta name="description" content="Private Zalo QR connection page" />
+  <title>Kết nối Zalo bằng QR · ABS Zalo Bridge</title>
+  <style>
+    :root{--bg:#0f1419;--card:#1a2332;--text:#e7ecf3;--muted:#9aa9bf;--line:#2a3548;--accent:#3d8bfd;--ok:#3dd68c;--warn:#f5a524;--bad:#f31260}
+    *{box-sizing:border-box} body{margin:0;min-height:100vh;background:radial-gradient(900px 500px at 10% -10%,#1b2a44,var(--bg));color:var(--text);font-family:ui-sans-serif,system-ui,sans-serif}
+    main{width:min(720px,100%);margin:0 auto;padding:22px 16px 40px}.card{background:color-mix(in srgb,var(--card) 94%,black);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+    h1{font-size:22px;margin:0 0 7px} h2{font-size:15px;margin:0 0 10px}.muted{color:var(--muted);font-size:13px;line-height:1.55}.brand{color:var(--muted);font-size:11px;letter-spacing:.04em;margin-bottom:18px}
+    .row{display:flex;flex-wrap:wrap;gap:9px;align-items:center}button{border:0;border-radius:10px;padding:10px 13px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}button.secondary{background:#2b364a}button:disabled{opacity:.55;cursor:wait}
+    input{width:min(360px,100%);background:#0c1118;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:10px} code,pre{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}code{color:#d8e5ff}pre{white-space:pre-wrap;overflow:auto;background:#0c1118;border:1px solid var(--line);border-radius:10px;padding:12px;color:#d8e5ff}
+    #qrBox{text-align:center;min-height:210px;display:grid;place-items:center;background:#0c1118;border:1px dashed var(--line);border-radius:12px;padding:14px}#qrBox img{width:min(300px,100%);height:auto;background:#fff;border-radius:10px;padding:9px}.status{margin:11px 0 0;color:var(--muted);font-size:13px}.status.ok{color:var(--ok)}.status.warn{color:var(--warn)}.status.bad{color:var(--bad)}
+    ol{margin:8px 0 0;padding-left:21px}.small{font-size:11px;color:var(--muted)}
+  </style>
+</head>
+<body>
+<main>
+  <div class="brand">ABS · Agent Business System · Private onboarding</div>
+  <section class="card">
+    <h1>Kết nối Zalo bằng QR</h1>
+    <p class="muted">Đây là trang riêng để người cài mở mã QR trên trình duyệt rồi tự quét bằng điện thoại Zalo. Không gửi QR vào chat hoặc log.</p>
+    <div class="row" style="margin-top:14px">
+      <label class="muted" for="token">Dashboard token (chỉ cần khi đã đặt token)</label>
+      <input id="token" type="password" autocomplete="off" placeholder="x-bridge-token" />
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="connect">Kết nối / lấy QR</button>
+      <button id="newQr" class="secondary">Tạo mã QR mới</button>
+      <button id="refresh" class="secondary">Kiểm tra lại</button>
+    </div>
+    <div id="status" class="status">Đang kiểm tra trạng thái…</div>
+  </section>
+
+  <section class="card">
+    <h2>QR sẽ hiện ngay bên dưới</h2>
+    <div id="qrBox"><span class="muted">Chưa có mã QR. Bấm “Kết nối / lấy QR”.</span></div>
+    <p id="qrMeta" class="small" style="text-align:center;margin:9px 0 0"></p>
+  </section>
+
+  <section class="card">
+    <h2>Quét như thế nào?</h2>
+    <ol class="muted">
+      <li>Mở ứng dụng Zalo trên điện thoại dùng cho bridge.</li>
+      <li>Mở chức năng quét QR/đăng nhập Zalo Web.</li>
+      <li>Quét mã này bằng ứng dụng Zalo trên điện thoại và tự xác nhận nếu Zalo hỏi.</li>
+      <li>Chờ trạng thái chuyển thành <b>connected</b>.</li>
+    </ol>
+    <p class="small">Dùng account Zalo riêng. Agent không nhập OTP/PIN, không xác nhận đăng nhập và không đọc session thay người dùng.</p>
+  </section>
+
+  <section class="card">
+    <h2>Nếu bridge chạy trên VPS</h2>
+    <p class="muted">Giữ service bind ở localhost trên VPS. Trên máy tính dùng để quét, mở một Terminal khác và chạy:</p>
+    <pre id="tunnel">ssh -N -L 13871:127.0.0.1:3871 user@your-vps-host</pre>
+    <p class="muted">Sau đó mở <code>http://127.0.0.1:13871/connect</code> trên chính máy đó. Trang này sẽ lấy QR từ VPS qua đường hầm SSH; không cần mở port 3871 ra Internet.</p>
+    <p class="small">Nếu đã cấu hình HTTPS reverse proxy có auth, mở URL HTTPS của bạn và vẫn giữ token. Không dùng URL public không có auth cho trang QR.</p>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const accountId = new URLSearchParams(location.search).get('account_id') || 'default';
+let pollTimer = null;
+function headers(){
+  const h={'content-type':'application/json'};
+  const token=$('token').value.trim();
+  if(token) h['x-bridge-token']=token;
+  return h;
+}
+async function api(path, options={}){
+  const response=await fetch(path,{...options,headers:{...headers(),...(options.headers||{})},cache:'no-store'});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok) throw new Error(data.error||data.reason||('HTTP '+response.status));
+  return data;
+}
+function status(text, kind=''){ $('status').textContent=text; $('status').className='status '+kind; }
+function renderQr(qr){
+  if(!qr || !qr.image){$('qrBox').innerHTML='<span class="muted">Chưa có mã QR. Bấm “Kết nối / lấy QR”.</span>'; $('qrMeta').textContent=''; return;}
+  let src=String(qr.image);
+  if(!src.startsWith('data:')&&!src.startsWith('http')) src='data:image/png;base64,'+src;
+  $('qrBox').innerHTML='';
+  const image=document.createElement('img'); image.alt='Mã QR đăng nhập Zalo'; image.src=src; $('qrBox').append(image);
+  $('qrMeta').textContent='Mã được tạo lúc '+(qr.updated_at||'vừa xong')+'. QR có thể hết hạn; khi đó bấm “Tạo QR mới”.';
+}
+async function readQr(){
+  try{ const data=await api('/api/accounts/'+encodeURIComponent(accountId)+'/qr'); renderQr(data.qr); return true; }
+  catch(error){ if(error.message!=='no_qr') status('Chưa lấy được QR: '+error.message,'warn'); return false; }
+}
+async function refresh(){
+  try{
+    const data=await api('/api/health');
+    const st=data.account?.status||'unknown';
+    if(st==='connected'){status('Đã kết nối. Có thể đóng trang này.','ok'); stopPolling();}
+    else if(st==='need_scan'){status('Đang chờ bạn quét QR trên điện thoại.','warn');}
+    else status('Trạng thái hiện tại: '+st,'');
+  }catch(error){status('Chưa đọc được trạng thái: '+error.message,'warn');}
+  await readQr();
+}
+function stopPolling(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
+function startPolling(){stopPolling();pollTimer=setInterval(()=>refresh().catch(()=>{}),2000);}
+async function connect(forceQr){
+  $('connect').disabled=true; $('newQr').disabled=true;
+  try{
+    const data=await api('/api/accounts/'+encodeURIComponent(accountId)+'/connect',{method:'POST',body:JSON.stringify({force_qr:forceQr})});
+    renderQr(data.qr); status(data.status?.status==='need_scan'?'Đang chờ bạn quét QR trên điện thoại.':'Đang kết nối…','warn'); startPolling();
+  }catch(error){status('Không tạo được QR: '+error.message,'bad');}
+  finally{$('connect').disabled=false; $('newQr').disabled=false;}
+}
+$('connect').onclick=()=>connect(false); $('newQr').onclick=()=>connect(true); $('refresh').onclick=()=>refresh();
+refresh().catch(()=>{});
+</script>
+</body>
+</html>

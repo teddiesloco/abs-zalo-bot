@@ -1,0 +1,48 @@
+# ABS-Zalo-Bot demo-safe local configuration.
+# Real destination/group/user IDs belong in runtime data or a private config.
+
+default_account_id = "default"
+phone_label = ""
+retention_days = 30
+
+# Personal adapter: full capture, absolute silence. No inbound message may
+# invoke a model, skill, MCP workflow, command, digest, alert, or send.
+read_only_source = true
+listen_self = false
+listen_all_groups = true
+listen_dms = true
+listener_only = true
+auto_alert = false
+auto_reply_default = false
+
+dashboard_bind = "127.0.0.1"
+dashboard_port = 3871
+
+# Leave destination empty until the operator selects one in the private dashboard.
+[destination]
+account_id = "default"
+group_id = ""
+group_name = ""
+
+[rate_limit]
+messages_per_hour = 20
+messages_per_day = 120
+ingest_per_hour = 2000
+destination_per_hour = 30
+alert_cooldown_minutes = 30
+
+[roles]
+owner = []
+admin = []
+operator = []
+viewer = []
+
+[hermes]
+# Optional Hermes Agent/OpenAI-compatible endpoint. Keep keys in environment only.
+api_base = "http://127.0.0.1:8642/v1"
+model = "hermes-agent"
+webhook_url = ""
+timeout_ms = 45000
+auto_analyze = false
+
+# Keepalive is env-driven. Use KEEPALIVE_AUTO_CONNECT=false until interactive QR setup is approved.

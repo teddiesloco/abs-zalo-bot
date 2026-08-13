@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="vi" data-abs-brand="Agent Business System" data-abs-product="ABS Zalo Bridge">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="application-name" content="ABS Zalo Bridge" />
+  <meta name="author" content="Agent Business System contributors" />
+  <meta name="description" content="ABS Zalo Bridge · Zalo channel intelligence with fail-closed safety." />
+  <meta name="abs-brand" content="Agent Business System" />
+  <meta name="abs-watermark" content="ABS · Agent Business System" />
+  <title>ABS Zalo Bridge · Zalo Personal Intelligence · Hermes</title>
+  <style>
+    :root {
+      --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --muted:#8b9bb4;
+      --accent:#3d8bfd; --ok:#3dd68c; --warn:#f5a524; --bad:#f31260; --line:#2a3548;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:radial-gradient(1200px 600px at 10% -10%,#1b2a44,var(--bg));color:var(--text);min-height:100vh}
+    header{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center}
+    h1{font-size:17px;margin:0}
+    .brand-mark{color:var(--muted);font-size:11px;letter-spacing:.04em;margin-top:5px}
+    footer{max-width:1100px;margin:0 auto;padding:0 22px 22px;color:var(--muted);font-size:11px;text-align:right}
+    .sub{color:var(--muted);font-size:12px;margin-top:4px}
+    main{padding:18px 22px 40px;max-width:1100px;margin:0 auto;display:grid;gap:14px}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{background:color-mix(in srgb,var(--card) 92%,black);border:1px solid var(--line);border-radius:14px;padding:14px}
+    .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    button{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:9px 12px;font-weight:600;cursor:pointer}
+    button.secondary{background:#2b364a} button.danger{background:var(--bad)} button:disabled{opacity:.5}
+    .pill{display:inline-flex;border-radius:999px;padding:3px 10px;font-size:12px;border:1px solid var(--line);color:var(--muted)}
+    .pill.ok{color:var(--ok)} .pill.warn{color:var(--warn)} .pill.bad{color:var(--bad)}
+    input,select{background:#0c1118;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 10px}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+    pre,code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+    pre{background:#0c1118;border:1px solid var(--line);border-radius:10px;padding:10px;overflow:auto;max-height:260px}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th,td{text-align:left;padding:7px 5px;border-bottom:1px solid var(--line);vertical-align:top}
+    th{color:var(--muted)}
+    #qr img{max-width:220px;border-radius:12px;background:#fff;padding:8px}
+    .muted{color:var(--muted);font-size:12px}
+    h2{margin:0 0 10px;font-size:14px}
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>ABS Zalo Bridge · Zalo Personal Intelligence Bridge</h1>
+    <div id="brandMark" class="brand-mark">ABS · Agent Business System</div>
+    <div class="sub">Company service · im lặng nghe nguồn allowlist · báo về phòng điều hành</div>
+  </div>
+  <div class="row">
+    <span id="pausePill" class="pill">kill</span>
+    <span id="tokenPill" class="pill">token</span>
+  </div>
+</header>
+<main>
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <div class="muted">Account · SIM</div>
+        <strong id="accountId">default</strong>
+        <div class="muted" id="phoneLabel" style="margin-top:4px"></div>
+        <div class="muted" id="ownerId" style="margin-top:4px"></div>
+        <div style="margin-top:8px"><span id="statusPill" class="pill">disconnected</span></div>
+      </div>
+      <div>
+        <label for="token">Dashboard token</label>
+        <input id="token" placeholder="x-bridge-token" style="width:200px" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="btnConnect">Kết nối QR</button>
+      <button id="btnRefresh" class="secondary">Refresh</button>
+      <button id="btnDiscover" class="secondary">Quét group IDs</button>
+      <button id="btnPause" class="secondary">Kill switch ON</button>
+      <button id="btnResume" class="secondary">Kill switch OFF</button>
+      <button id="btnDigest" class="secondary">Digest now</button>
+      <button id="btnDisconnect" class="danger">Disconnect</button>
+    </div>
+    <p class="muted" style="margin:10px 0 0">
+      Nghe mọi group (im). Chỉ phân tích khi operator hỏi trong <b>destination đã cấu hình</b>.
+      Owner/user id + source id tự resolve sau QR — không cần anh dò tay.
+    </p>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <h2>QR Login</h2>
+      <div id="qr" class="muted">Chưa có QR.</div>
+    </section>
+    <section class="card">
+      <h2>Destination group</h2>
+      <label>group_id</label>
+      <input id="destId" style="width:100%;margin-bottom:8px" />
+      <label>group_name</label>
+      <input id="destName" style="width:100%;margin-bottom:8px" />
+      <button id="btnDest">Lưu destination</button>
+      <p class="muted" id="destCur" style="margin-top:8px"></p>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Allowlist source</h2>
+    <div class="row">
+      <input id="srcId" placeholder="source_id" />
+      <input id="srcName" placeholder="tên group" />
+      <select id="srcMode">
+        <option value="listen_only">listen_only</option>
+        <option value="digest_only">digest_only</option>
+        <option value="alert_only">alert_only</option>
+        <option value="mention_only">mention_only</option>
+        <option value="reply_enabled">reply_enabled</option>
+        <option value="off">off</option>
+      </select>
+      <button id="btnAddSrc">Thêm / cập nhật</button>
+    </div>
+    <div style="overflow:auto;margin-top:10px">
+      <table>
+        <thead><tr><th>source</th><th>mode</th><th>muted</th><th></th></tr></thead>
+        <tbody id="srcTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Authorized users</h2>
+      <div class="row">
+        <input id="permUser" placeholder="user_id" />
+        <select id="permRole">
+          <option>owner</option><option>admin</option><option>operator</option><option>viewer</option>
+        </select>
+        <button id="btnPerm">Lưu role</button>
+      </div>
+      <pre id="perms">[]</pre>
+    </section>
+    <section class="card">
+      <h2>Reports / Audit</h2>
+      <pre id="reports">[]</pre>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Events gần đây</h2>
+    <div style="overflow:auto">
+      <table>
+        <thead><tr><th>Time</th><th>Source</th><th>Sender</th><th>Text</th></tr></thead>
+        <tbody id="events"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Raw status</h2>
+    <pre id="raw">{}</pre>
+  </section>
+</main>
+<footer id="brandFooter">ABS · Agent Business System · ABS Channel Intelligence</footer>
+<script>
+const $ = (id) => document.getElementById(id);
+let accountId = 'default';
+async function loadBrand(){
+  try{
+    const data=await fetch('/api/brand').then(r=>r.json());
+    const brand=data.brand||{};
+    const mark=brand.watermark||'ABS · Agent Business System';
+    $('brandMark').textContent=mark;
+    $('brandFooter').textContent=`${mark} · ${brand.product_line||'ABS Channel Intelligence'}`;
+    document.title=`${brand.product||'ABS Zalo Bridge'} · Zalo Personal Intelligence · Hermes`;
+  }catch{}
+}
+function headers() {
+  const h = {'content-type':'application/json'};
+  const t = $('token').value.trim();
+  if (t) h['x-bridge-token'] = t;
+  return h;
+}
+function sc(s){return s==='connected'?'ok':(s==='need_scan'||s==='reconnecting'||s==='paused')?'warn':'bad'}
+async function api(path, opts={}) {
+  const res = await fetch(path, {...opts, headers:{...headers(), ...(opts.headers||{})}});
+  const data = await res.json().catch(()=>({}));
+  if (!res.ok) throw new Error(data.error || data.message || res.statusText);
+  return data;
+}
+function renderStatus(data){
+  const acc=(data.accounts||[])[0]||{};
+  accountId=acc.account_id||'default';
+  $('accountId').textContent=accountId;
+  $('phoneLabel').textContent=data.phone_label?('SIM: '+data.phone_label):'';
+  $('ownerId').textContent=data.owner_user_id?('owner user_id: '+data.owner_user_id):'owner user_id: (sau QR tự lấy)';
+  const st=acc.status||'disconnected';
+  $('statusPill').textContent=st; $('statusPill').className='pill '+sc(st);
+  $('pausePill').textContent=data.global_paused?'KILL ON':'running';
+  $('pausePill').className='pill '+(data.global_paused?'warn':'ok');
+  $('tokenPill').textContent=data.token_is_default?'token default':'token set';
+  $('tokenPill').className='pill '+(data.token_is_default?'warn':'ok');
+  const dest=data.destination||{};
+  $('destId').value=dest.group_id||'';
+  $('destName').value=dest.group_name||'';
+  $('destCur').textContent=dest.group_id
+    ? `OK · ${dest.group_name||''} · id=${dest.group_id}`
+    : (dest.group_name?`Chờ QR resolve · name=${dest.group_name}`:'destination unset');
+  $('perms').textContent=JSON.stringify(data.permissions||[],null,2);
+  $('raw').textContent=JSON.stringify(data,null,2);
+  const rows=data.sources||[];
+  $('srcTable').innerHTML=rows.map(s=>`
+    <tr>
+      <td>${s.source_name||'(no name)'}<div class="muted">${s.source_id}</div></td>
+      <td>${s.mode}</td>
+      <td>${s.muted? 'yes':'no'}</td>
+      <td class="row">
+        <button class="secondary" data-mode="${s.source_id}">mode digest</button>
+        <button class="secondary" data-mute="${s.source_id}">mute</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="4" class="muted">Chưa có source — sau QR sẽ auto list</td></tr>';
+  document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=async()=>{
+    await api(`/api/sources/${b.dataset.mode}/mode`,{method:'POST',body:JSON.stringify({mode:'digest_only',account_id:accountId})});
+    refresh();
+  });
+  document.querySelectorAll('[data-mute]').forEach(b=>b.onclick=async()=>{
+    await api(`/api/sources/${b.dataset.mute}/mute`,{method:'POST',body:JSON.stringify({muted:true,account_id:accountId})});
+    refresh();
+  });
+}
+async function refresh(){
+  const data=await api('/api/status');
+  renderStatus(data);
+  try{const qr=await api(`/api/accounts/${accountId}/qr`); renderQr(qr.qr);}catch{}
+  const ev=await api('/api/events?limit=30');
+  $('events').innerHTML=(ev.events||[]).map(e=>`
+    <tr><td>${(e.created_at||'').replace('T',' ').slice(0,19)}</td>
+    <td>${e.source_name||e.source_id}</td>
+    <td>${e.sender_name||e.sender_id||''}</td>
+    <td>${(e.text||'').slice(0,160)}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">No events</td></tr>';
+  const rep=await api('/api/reports?limit=10');
+  const aud=await api('/api/audit?limit=15');
+  $('reports').textContent=JSON.stringify({reports:rep.reports,audit:aud.audit},null,2);
+}
+function renderQr(qr){
+  if(!qr?.image){$('qr').innerHTML='<span class="muted">Chưa có QR.</span>';return;}
+  let src=qr.image;
+  if(!String(src).startsWith('data:')&&!String(src).startsWith('http')) src='data:image/png;base64,'+src;
+  $('qr').innerHTML=`<img alt="QR" src="${src}"/><div class="muted" style="margin-top:8px">${qr.updated_at||''}</div>`;
+}
+$('btnRefresh').onclick=()=>refresh().catch(alert);
+$('btnDiscover').onclick=async()=>{
+  try{
+    const r=await api('/api/discovery/refresh',{method:'POST',body:JSON.stringify({account_id:accountId})});
+    alert(JSON.stringify(r.result||r,null,2));
+    await refresh();
+  }catch(e){alert(e.message)}
+};
+$('btnConnect').onclick=async()=>{
+  try{
+    const r=await api(`/api/accounts/${accountId}/connect`,{method:'POST',body:JSON.stringify({})});
+    renderQr(r.qr); let n=0;
+    const t=setInterval(async()=>{n++; try{await refresh(); if($('statusPill').textContent==='connected'||n>40) clearInterval(t);}catch{}},2000);
+  }catch(e){alert(e.message)}
+};
+$('btnPause').onclick=async()=>{await api('/api/kill-switch',{method:'POST',body:JSON.stringify({paused:true})}); refresh();};
+$('btnResume').onclick=async()=>{await api(`/api/accounts/${accountId}/resume`,{method:'POST',body:'{}'}); refresh();};
+$('btnDisconnect').onclick=async()=>{if(!confirm('Disconnect?'))return; await api(`/api/accounts/${accountId}/disconnect`,{method:'POST',body:JSON.stringify({wipe_session:false})}); refresh();};
+$('btnDigest').onclick=async()=>{const r=await api('/api/digest/run',{method:'POST',body:JSON.stringify({hours:24})}); alert(JSON.stringify(r,null,2));};
+$('btnDest').onclick=async()=>{
+  await api('/api/destination',{method:'POST',body:JSON.stringify({account_id:accountId,group_id:$('destId').value.trim(),group_name:$('destName').value.trim()})});
+  refresh();
+};
+$('btnAddSrc').onclick=async()=>{
+  await api('/api/sources',{method:'POST',body:JSON.stringify({account_id:accountId,source_id:$('srcId').value.trim(),source_name:$('srcName').value.trim(),mode:$('srcMode').value})});
+  $('srcId').value=''; refresh();
+};
+$('btnPerm').onclick=async()=>{
+  await api('/api/permissions',{method:'POST',body:JSON.stringify({account_id:accountId,user_id:$('permUser').value.trim(),role:$('permRole').value})});
+  refresh();
+};
+loadBrand();
+refresh().catch(e=>$('raw').textContent=String(e));
+</script>
+</body>
+</html>

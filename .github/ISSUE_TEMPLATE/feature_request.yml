@@ -1,0 +1,31 @@
+name: Feature request
+description: Propose a safe, reviewable improvement.
+title: "feature: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or operator problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the smallest deterministic change.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety checklist
+      options:
+        - label: This does not add spam, broadcast, login bypass, or arbitrary personal sends.
+          required: true
+        - label: Any outbound side effect has an explicit approval and fail-closed policy.
+          required: true
+        - label: The proposal does not require real credentials or personal data in the repository.
+          required: true

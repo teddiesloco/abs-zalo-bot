@@ -1,0 +1,37 @@
+name: Bug report
+description: Report a reproducible problem without sharing private runtime data.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include credentials, QR images, sessions, cookies, IMEI values, raw messages, phone numbers, or real account/group IDs.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Use synthetic fixtures and redact all runtime values.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification output
+      description: Include commands and exit codes only; redact sensitive output.
+    validations:
+      required: false

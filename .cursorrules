@@ -1,0 +1,13 @@
+This repo is ABS Zalo Bot. Read AGENTS.md, BRAND.md and docs/agent-handoff.md before changing anything.
+
+Hard boundaries:
+- Every outbound message is a side effect: draft_first and an empty allowlist stay fail-closed.
+- Never delegate safety decisions to an LLM. Policy, routing, audit and redaction live in code.
+- Do not add broadcast, spam, friend-list mutation, group administration, login bypass, OTP/PIN handling.
+- Keep the official Zalo OA adapter separate from the unofficial personal-QR adapter.
+- Never hardcode server paths, endpoints or tokens. Everything goes through environment variables.
+
+Run before proposing a commit: npm test && npm run validate-config && npm run secret-scan
+
+Tieng Viet: moi tin gui di deu phai co nguoi duyet. Quyet dinh an toan nam trong code,
+khong nam trong prompt. Zalo OA va Zalo ca nhan la hai duong tach biet.

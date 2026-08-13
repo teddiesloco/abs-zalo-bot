@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "bots": [
+    {
+      "bot_id": "demo-oa",
+      "tenant_id": "demo",
+      "name": "Demo Zalo OA",
+      "adapter": "zalo_oa",
+      "enabled": true,
+      "credential": {
+        "app_id_env": "ZALO_OA_APP_ID_DEMO_OA",
+        "app_secret_env": "ZALO_OA_APP_SECRET_DEMO_OA",
+        "refresh_token_env": "ZALO_OA_REFRESH_TOKEN_DEMO_OA"
+      },
+      "policy": {
+        "mode": "draft_first",
+        "allow_user_ids": []
+      }
+    },
+    {
+      "bot_id": "demo-personal",
+      "tenant_id": "demo",
+      "name": "Demo Personal QR",
+      "adapter": "zalo_personal_qr",
+      "account_id": "demo-personal",
+      "enabled": false,
+      "policy": {
+        "mode": "draft_first",
+        "allow_user_ids": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+[Unit]
+Description=ABS Zalo Bot (template — do not enable before operator approval)
+After=network.target
+# Fail closed operationally: operator must review allowlist + destination first.
+
+[Service]
+Type=simple
+User=abs-zalo-bot
+Group=abs-zalo-bot
+WorkingDirectory=/opt/abs-zalo-bot
+EnvironmentFile=-/etc/abs-zalo-bot/abs-zalo-bot.env
+ExecStart=/usr/bin/node src/cli.js serve
+Restart=on-failure
+RestartSec=5
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/hermes/zalo-personal-bridge
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

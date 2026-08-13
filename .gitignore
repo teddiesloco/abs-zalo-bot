@@ -1,0 +1,14 @@
+node_modules/
+data/
+.env
+.env.*
+!.env.example
+*.log
+*.sqlite3
+*.sqlite3-*
+sessions/
+.qr/
+coverage/
+config/bots.json
+.env.backup*
+.DS_Store

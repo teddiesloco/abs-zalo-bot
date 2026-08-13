@@ -1,0 +1,62 @@
+{
+  "name": "abs-zalo-bot",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "ABS Zalo Bridge: Zalo Personal Intelligence Bridge + MCP with an isolated official OA adapter boundary, fail-closed policies, and destination-only reports.",
+  "author": "Agent Business System contributors",
+  "license": "MIT",
+  "keywords": [
+    "agent-business-system",
+    "abs",
+    "zalo",
+    "personal-qr",
+    "official-oa",
+    "mcp"
+  ],
+  "abs": {
+    "brand": "Agent Business System",
+    "short_name": "ABS",
+    "product": "ABS Zalo Bridge",
+    "product_line": "ABS Channel Intelligence",
+    "watermark": "ABS · Agent Business System",
+    "metadata_source": "brand.json"
+  },
+  "bin": {
+    "zalo-personal-mcp": "./mcp/server.js"
+  },
+  "scripts": {
+    "start": "node src/cli.js serve",
+    "dev": "node --watch src/cli.js serve",
+    "self-check": "node src/cli.js self-check",
+    "status": "node src/cli.js status",
+    "qr": "node src/cli.js qr",
+    "onboarding": "node src/cli.js onboarding",
+    "digest": "node src/cli.js digest",
+    "backfill": "node src/cli.js backfill",
+    "mcp": "node mcp/server.js",
+    "setup": "node scripts/setup.js setup",
+    "install:locked": "npm ci",
+    "doctor": "node scripts/setup.js doctor",
+    "dashboard-info": "node scripts/setup.js dashboard-info",
+    "smoke": "node scripts/battle-smoke.js",
+    "battle": "node scripts/battle-smoke.js",
+    "validate-config": "node scripts/public-gate.js validate-config",
+    "secret-scan": "node scripts/public-gate.js secret-scan",
+    "syntax-check": "node scripts/public-gate.js syntax-check",
+    "test": "node --test test/*.test.js",
+    "cold": "npm test && npm run validate-config && npm run secret-scan && npm run syntax-check && npm run self-check && npm run smoke"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "express": "^4.21.2",
+    "zca-js": "2.1.2",
+    "zod": "3.25.76"
+  },
+  "overrides": {
+    "@hono/node-server": "2.1.0"
+  }
+}
