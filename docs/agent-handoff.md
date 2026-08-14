@@ -13,7 +13,6 @@ npm run doctor
 Sau đó đọc đúng phần liên quan:
 
 1. `AGENTS.md` — luật bất biến.
-2. `BRAND.md` — ABS identity và watermark boundary.
 3. `README.md` — user flow.
 4. `internal/00-DESIGN.md` — kiến trúc.
 5. `internal/01-SPEC.md` — contract.

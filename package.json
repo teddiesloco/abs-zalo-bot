@@ -3,8 +3,8 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "ABS Zalo Bridge: Zalo Personal Intelligence Bridge + MCP with an isolated official OA adapter boundary, fail-closed policies, and destination-only reports.",
-  "author": "Agent Business System contributors",
+  "description": "Zalo channel adapter for AI agents. Official OA and personal QR kept separate, fail-closed by default.",
+  "author": "teddiesloco",
   "license": "MIT",
   "keywords": [
     "agent-business-system",
@@ -14,14 +14,6 @@
     "official-oa",
     "mcp"
   ],
-  "abs": {
-    "brand": "Agent Business System",
-    "short_name": "ABS",
-    "product": "ABS Zalo Bridge",
-    "product_line": "ABS Channel Intelligence",
-    "watermark": "ABS · Agent Business System",
-    "metadata_source": "brand.json"
-  },
   "bin": {
     "zalo-personal-mcp": "./mcp/server.js"
   },

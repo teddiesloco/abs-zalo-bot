@@ -43,7 +43,7 @@ function fixtureContext() {
   return { dir, config, store, policy, hub, qrImage };
 }
 
-test("public brand metadata is exposed without runtime data", async () => {
+test("service metadata is exposed without runtime data", async () => {
   const ctx = fixtureContext();
   const previousToken = process.env.DASHBOARD_TOKEN;
   delete process.env.DASHBOARD_TOKEN;
@@ -57,7 +57,8 @@ test("public brand metadata is exposed without runtime data", async () => {
       const payload = await response.json();
       assert.equal(response.status, 200, route);
       assert.deepEqual(payload.brand, expected, route);
-      assert.equal(Object.hasOwn(payload.brand, "repository"), true, route);
+      assert.equal(Object.hasOwn(payload.brand, "name"), true, route);
+      assert.equal(Object.hasOwn(payload.brand, "version"), true, route);
       assert.equal(Object.hasOwn(payload.brand, "cookie"), false, route);
       assert.equal(Object.hasOwn(payload.brand, "session"), false, route);
     }
@@ -106,13 +107,4 @@ test("QR connect endpoint returns generated QR while human scan is pending", asy
     if (previousToken === undefined) delete process.env.DASHBOARD_TOKEN;
     else process.env.DASHBOARD_TOKEN = previousToken;
   }
-});
-
-test("dashboard carries ABS metadata and visible watermark surfaces", () => {
-  const html = fs.readFileSync(path.join(process.cwd(), "public", "index.html"), "utf8");
-  assert.match(html, /data-abs-brand="Agent Business System"/);
-  assert.match(html, /meta name="abs-brand"/);
-  assert.match(html, /id="brandMark"/);
-  assert.match(html, /id="brandFooter"/);
-  assert.match(html, /ABS · Agent Business System/);
 });

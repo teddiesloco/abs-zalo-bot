@@ -1,8 +1,5 @@
-# ABS Zalo Bridge
+# ABS Zalo Bot
 
-**Agent Business System (ABS)** · ABS Channel Intelligence
-
-Canonical brand metadata lives in [`brand.json`](brand.json), with the runtime reader in [`src/brand.js`](src/brand.js). Read [`BRAND.md`](BRAND.md) before adding a UI, API surface, agent prompt, or outbound workflow.
 
 **Cài một lần · chạy được bằng nút/command đơn giản · agent và Codex đọc là biết cách làm việc**
 

@@ -3,7 +3,6 @@
 Before doing anything in this repository, read:
 
 1. `AGENTS.md`
-2. `BRAND.md`
 3. `docs/agent-handoff.md`
 4. `README.md`
 

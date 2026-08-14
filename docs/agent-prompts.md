@@ -5,7 +5,7 @@ Các prompt dưới đây dành cho chủ không biết code. Có thể dán ngu
 ## Cài lần đầu
 
 ```text
-Đọc AGENTS.md, BRAND.md, docs/agent-handoff.md và README.md trước. Kiểm tra Node.js 22.5+. Chạy bash setup.sh --non-interactive. Không yêu cầu hoặc in secret, cookie, IMEI, QR/session, OTP/PIN. Không đăng nhập, không gửi tin và không deploy. Sau đó báo command, exit code và bước tiếp theo bằng tiếng Việt dễ hiểu.
+Đọc AGENTS.md, docs/agent-handoff.md và README.md trước. Kiểm tra Node.js 22.5+. Chạy bash setup.sh --non-interactive. Không yêu cầu hoặc in secret, cookie, IMEI, QR/session, OTP/PIN. Không đăng nhập, không gửi tin và không deploy. Sau đó báo command, exit code và bước tiếp theo bằng tiếng Việt dễ hiểu.
 ```
 
 ## Mở cho chủ dùng

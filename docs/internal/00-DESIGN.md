@@ -2,7 +2,7 @@
 
 ## Định vị
 
-ABS-Zalo-Bot (Agent Business System) là starter platform mã nguồn mở để đóng gói Zalo thành một channel adapter cho Hermes Agent, Claude Code, Codex, n8n và các agent runtime khác.
+ABS Zalo Bot là adapter mã nguồn mở để đóng gói Zalo thành một channel adapter cho Hermes Agent, Claude Code, Codex, n8n và các agent runtime khác.
 
 Một bản cài có thể quản lý nhiều bot độc lập. Mỗi bot có `bot_id`, adapter, tenant, session/credential, allowlist, policy và audit riêng.
 

@@ -1,43 +1,31 @@
 ---
 name: abs-zalo-bot
-description: Use when operating ABS Zalo Bot (Agent Business System) — Zalo channel adapter — QR personal Zalo, READ_ONLY corpus, configured destination on-demand reports, Policy Guard, Hermes tools mcp_zalo_personal_*.
+description: Use when connecting an AI agent to Zalo — official OA adapter or personal QR bridge, listing groups and users, reading recent messages, or exposing Zalo tools over MCP.
 triggers:
-  - ABS Zalo Bot
-  - Zalo channel adapter
-  - Zalo Personal MCP
-  - mcp_zalo_personal
-  - configured destination
-  - READ_ONLY_SOURCE Zalo
+  - Zalo
+  - Zalo OA
+  - Zalo group
+  - Zalo MCP
+  - zalo_status
 ---
 
-# ABS Zalo Bot — Zalo channel adapter + MCP
+# Zalo channel adapter
 
-Adapter kênh Zalo cho agent. Hai đường tách biệt: **Zalo OA (chính thức)** và **Zalo cá nhân qua QR (không chính thức, chỉ dùng nội bộ/demo)**. Không phải core của agent nào.
+Two adapters kept separate on purpose:
 
-## Naming
+- **Zalo OA** — official API, for customer-facing work.
+- **Zalo personal QR** — unofficial, your own account only, internal or demo use.
 
-| Name | Role |
-|------|------|
-| Bridge | Daemon `:3871` — session, listener, corpus, Policy Guard |
-| **Zalo Personal MCP** | Thin stdio facade `mcp/server.js` |
-| Hermes tools | `mcp_zalo_personal_*` |
+Read `AGENTS.md` before changing anything.
 
-## Artifact
-
-`./`
-
-## Battle ops
+## Run
 
 ```bash
-cd /path/to/abs-zalo-bot
-npm start
-curl -s -X POST http://127.0.0.1:3871/api/accounts/default/connect -H 'content-type: application/json' -d '{}'
-npm run smoke
-# optional real send to configured destination:
-BATTLE_SEND=true npm run smoke
+npm ci
+npm run doctor
+npm start          # daemon on :3871
+npm run mcp        # stdio MCP facade
 ```
-
-Check: `GET /api/battle-ready` → `battle_ready: true`
 
 ## MCP tools
 
@@ -45,13 +33,10 @@ Check: `GET /api/battle-ready` → `battle_ready: true`
 `zalo_recent_messages` · `zalo_corpus_summary` · `zalo_backfill` ·
 `zalo_ask_destination` · `zalo_refresh_discovery`
 
-## Safety defaults
+All read-oriented. Sending is fail-closed: `draft_first` plus an empty recipient
+allowlist, so nothing leaves the machine until a human approves it.
 
-READ_ONLY_SOURCE · destination-only configured destination · no source/DM/mention reply
+## Limits worth knowing
 
-## Related research
-
-- Mọi wrapper Zalo cá nhân đều dựng trên `zca-js` và chịu chung giới hạn: 1 listener mỗi tài khoản, session mong manh, có rủi ro khoá tài khoản. Xem `MCP.md` để biết đã khảo sát những gói nào.
-- `minhkhoa0502/zalo-personal-mcp` → thin MCP + daemon pattern
-
-See `MCP.md`.
+Personal QR runs on `zca-js`: one listener per account, fragile session, and a real
+risk of the account being locked. Treat it as internal tooling, not a product surface.

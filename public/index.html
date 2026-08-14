@@ -1,14 +1,4 @@
 <!doctype html>
-<html lang="vi" data-abs-brand="Agent Business System" data-abs-product="ABS Zalo Bridge">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="application-name" content="ABS Zalo Bridge" />
-  <meta name="author" content="Agent Business System contributors" />
-  <meta name="description" content="ABS Zalo Bridge · Zalo channel intelligence with fail-closed safety." />
-  <meta name="abs-brand" content="Agent Business System" />
-  <meta name="abs-watermark" content="ABS · Agent Business System" />
-  <title>ABS Zalo Bridge · Zalo Personal Intelligence · Hermes</title>
   <style>
     :root {
       --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --muted:#8b9bb4;
@@ -46,7 +36,6 @@
 <header>
   <div>
     <h1>ABS Zalo Bridge · Zalo Personal Intelligence Bridge</h1>
-    <div id="brandMark" class="brand-mark">ABS · Agent Business System</div>
     <div class="sub">Company service · im lặng nghe nguồn allowlist · báo về phòng điều hành</div>
   </div>
   <div class="row">
@@ -156,7 +145,6 @@
     <pre id="raw">{}</pre>
   </section>
 </main>
-<footer id="brandFooter">ABS · Agent Business System · ABS Channel Intelligence</footer>
 <script>
 const $ = (id) => document.getElementById(id);
 let accountId = 'default';
@@ -164,9 +152,6 @@ async function loadBrand(){
   try{
     const data=await fetch('/api/brand').then(r=>r.json());
     const brand=data.brand||{};
-    const mark=brand.watermark||'ABS · Agent Business System';
-    $('brandMark').textContent=mark;
-    $('brandFooter').textContent=`${mark} · ${brand.product_line||'ABS Channel Intelligence'}`;
     document.title=`${brand.product||'ABS Zalo Bridge'} · Zalo Personal Intelligence · Hermes`;
   }catch{}
 }

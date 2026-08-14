@@ -1,6 +1,5 @@
 # Codex CLI entrypoint
 
-Codex must read `AGENTS.md`, `BRAND.md`, and `docs/agent-handoff.md` before editing or running the project. `brand.json` is the canonical ABS metadata source; do not invent alternate names or append the watermark to outbound Zalo content.
 
 Start with:
 

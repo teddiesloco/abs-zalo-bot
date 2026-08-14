@@ -4,7 +4,6 @@ This file describes the safe contribution boundary for the repository. It is not
 
 ## Scope
 
-- Treat `brand.json` as the canonical Agent Business System (ABS) metadata source; do not invent alternate brand names or watermarks.
 - Keep the ABS mark in package/UI/API/docs surfaces only. Do not append it to raw Zalo messages, customer replies, reports, IDs, sessions, or logs unless a workflow explicitly opts in.
 - Keep the official Zalo OA adapter and the unofficial personal QR adapter separate.
 - Keep deterministic normalization, policy, routing, audit, and redaction in code; do not delegate safety decisions to an LLM.
@@ -37,7 +36,6 @@ Before merging a change, verify:
 
 1. `npm test` is green.
 2. Public gates are green.
-3. `brand.json`, package metadata, API metadata, dashboard mark, and docs agree on ABS identity.
 4. OA webhook parsing remains ingress-only and does not send or call an AI provider.
 5. Personal QR remains unofficial, opt-in, and dedicated-account only.
 6. No deployment, public publish, credential change, or live message send is performed by CI.

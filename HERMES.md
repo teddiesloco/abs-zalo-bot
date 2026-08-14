@@ -2,7 +2,7 @@
 
 Two ways to install. Either works.
 
-Read `AGENTS.md`, `BRAND.md` and `docs/agent-handoff.md` first.
+Read `AGENTS.md` and `docs/agent-handoff.md` first.
 
 ## Option 1 — Install as a skill (fastest)
 
