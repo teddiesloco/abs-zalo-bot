@@ -1,107 +1,109 @@
-# Quickstart cho người không biết code
+# Non-coder quickstart
 
-Mục tiêu: cài local, mở dashboard, quét QR và bắt đầu ở chế độ chỉ nghe. Không cần viết code.
+Goal: install locally, open the dashboard, scan the QR, and start in listen-only mode. No coding required.
 
-## Bước 0 — biết mình đang cài gì
+> **Tiếng Việt:** Chạy `bash setup.sh`, rồi `npm start`, mở `http://127.0.0.1:3871`. Quét QR bằng **account riêng**, chọn destination, để nguồn ở `listen_only`. Chưa chọn destination thì bot không gửi — đó là an toàn, không phải lỗi. Không đưa OTP/PIN cho agent.
 
-Có hai loại:
+## Step 0 — know what you are installing
 
-- **Personal QR**: account Zalo riêng, không chính thức, dùng để nghe/tổng hợp nội bộ.
-- **OA**: tài khoản chính thức, phù hợp hơn khi nói chuyện với khách.
+There are two paths:
 
-Trang này hướng dẫn Personal QR vì đây là đường dễ thử nhất. Nếu làm bot cho khách, chuyển sang [Official OA](official-oa.md).
+- **Personal QR**: a dedicated Zalo account, unofficial, for listening to and digesting internal groups.
+- **OA**: the official account, and the better fit when you talk to customers.
 
-## Bước 1 — chạy setup
+This page covers Personal QR because it is the easiest to try. Building a bot for customers? Go to [Official OA](official-oa.md) instead.
 
-Mở Terminal, vào thư mục repo, chạy:
+## Step 1 — run setup
+
+Open Terminal, go to the repo directory, and run:
 
 ```bash
 bash setup.sh
 ```
 
-Chờ tới khi thấy các dòng kiểm tra pass. Nếu setup báo Node quá cũ, cài Node.js 22.5+ rồi chạy lại. Không cần sửa code.
+Wait until the check lines pass. If setup says Node is too old, install Node.js 22.5+ and run it again. You do not need to edit any code.
 
-## Bước 2 — mở dashboard
+## Step 2 — open the dashboard
 
 ```bash
 npm start
 ```
 
-Giữ cửa sổ này mở. Mở trình duyệt và vào:
+Leave that window open. In a browser, go to:
 
 ```text
 http://127.0.0.1:3871
 ```
 
-Nếu dùng máy khác/VPS, đừng mở port thẳng ra Internet. Nhờ agent cấu hình HTTPS/auth sau khi đã hiểu rõ boundary.
+On a remote machine or VPS, do not expose the port directly to the Internet. Have an agent set up HTTPS/auth once the boundary is clear.
 
-## Bước 3 — quét QR
+## Step 3 — scan the QR
 
-1. Bấm **Kết nối QR**.
-2. Mở Zalo trên điện thoại.
-3. Dùng account riêng để quét.
-4. Nếu điện thoại hỏi xác nhận, tự xác nhận trên điện thoại.
-5. Chờ dashboard hiện `connected`.
+1. Click **Connect QR**.
+2. Open Zalo on your phone.
+3. Scan with your dedicated account.
+4. If the phone asks for confirmation, confirm it yourself on the phone.
+5. Wait for the dashboard to show `connected`.
 
-Agent không được nhận hoặc nhập OTP/PIN thay bạn.
+An agent must never receive or enter an OTP/PIN for you.
 
-## Bước 4 — chọn nơi nhận báo cáo
+## Step 4 — choose where reports go
 
-Trong ô **Destination group**:
+In the **Destination group** box:
 
-1. Bấm **Quét group IDs**.
-2. Chọn group điều hành muốn nhận báo cáo.
-3. Lưu destination.
+1. Click **Scan group IDs**.
+2. Pick the ops group that should receive reports.
+3. Save the destination.
 
-Nếu chưa chọn destination thì bot không được gửi. Đây là trạng thái an toàn bình thường.
+With no destination set, the bot is not allowed to send. That is a normal safe state.
 
-## Bước 5 — chọn nguồn để nghe
+## Step 5 — choose sources to listen to
 
-Trong **Allowlist source**:
+Under **Allowlist source**:
 
-1. chọn một group;
-2. đặt mode `listen_only`;
-3. bấm thêm/cập nhật;
-4. chờ một ít tin mới;
-5. chỉ khi dữ liệu đúng, chuyển sang `digest_only`.
+1. pick a group;
+2. set the mode to `listen_only`;
+3. click add/update;
+4. wait for a few new messages;
+5. only once the data looks right, switch to `digest_only`.
 
-Đừng bắt đầu bằng `reply_enabled`.
+Do not start with `reply_enabled`.
 
-## Bước 6 — kiểm tra
+## Step 6 — verify
 
-Mở terminal thứ hai:
+Open a second terminal:
 
 ```bash
 npm run doctor
 npm run status
 ```
 
-Hỏi agent:
+Ask your agent:
 
-> “Kiểm tra bridge đang connected chưa, destination đã đặt chưa, nguồn nào đang listen_only/digest_only, và không gửi tin thật.”
+> "Check whether the bridge is connected, whether a destination is set, which sources are on listen_only/digest_only — and do not send any real message."
 
-## Bước 7 — thử tổng hợp
+## Step 7 — try a digest
 
-Có thể bấm **Digest now** trên dashboard. Nếu chưa connected hoặc chưa có destination, hệ thống sẽ chặn thay vì đoán.
+You can click **Digest now** in the dashboard. If it is not connected or has no destination, the system blocks instead of guessing.
 
-Smoke test mặc định không gửi:
+The smoke test does not send by default:
 
 ```bash
 npm run smoke
 ```
 
-Không chạy `BATTLE_SEND=true` nếu chưa được operator duyệt rõ destination và nội dung.
+Do not run `BATTLE_SEND=true` until the operator has explicitly approved both the destination and the content.
 
-## Dừng hệ thống
+## Stopping
 
-Trong cửa sổ `npm start`, nhấn `Ctrl+C`. Nếu cần chặn gửi ngay, bấm **Kill switch ON** trước.
+In the `npm start` window, press `Ctrl+C`. If you need to block sending right now, click **Kill switch ON** first.
 
-## Nếu gặp lỗi
+## If something breaks
 
-Không xoá `data/`, không xoá session vội, không gửi `.env` cho người khác. Chạy:
+Do not delete `data/`, do not rush to delete the session, and do not send your `.env` to anyone. Run:
 
 ```bash
 npm run doctor
 ```
 
-Sau đó gửi cho agent chỉ phần lỗi đã redact, không gửi token/cookie/QR/database.
+Then give your agent only the redacted error text — never a token, cookie, QR or database.

@@ -1,23 +1,32 @@
 # ABS Zalo Bot
 
+**Install once · run from a dashboard button or one command · agents read the repo and know how to work in it**
 
-**Cài một lần · chạy được bằng nút/command đơn giản · agent và Codex đọc là biết cách làm việc**
+A local/VPS Zalo bridge for Hermes and coding agents:
 
-Đây là một bridge Zalo local/VPS cho Hermes và các coding agent:
+- **Zalo Personal QR**: listens to allowlisted sources, stores data locally, and posts digests to one destination. This is the *unofficial* path — internal/demo use with a dedicated account only.
+- **Zalo OA**: the official adapter, kept separate from Personal QR, and the right choice for a customer-facing bot.
+- **Policy Guard**: fail-closed by default. Nothing is sent until it is configured.
+- **Dashboard**: a non-coder can connect the QR, pick sources, pick a destination, and flip the kill switch.
+- **MCP**: agents can read status, groups, users and corpus, and ask for the destination through a safe contract.
 
-- **Zalo Personal QR**: nghe nguồn được phép, lưu dữ liệu cục bộ, tổng hợp về destination. Đây là đường *không chính thức*, chỉ dùng cho nội bộ/demo với account riêng.
-- **Zalo OA**: adapter chính thức, tách riêng khỏi personal QR, phù hợp hơn cho customer-facing bot.
-- **Policy Guard**: mặc định fail-closed; chưa cấu hình thì không gửi.
-- **Dashboard**: người không biết code vẫn có thể kết nối QR, chọn nguồn, chọn destination, bật/tắt kill switch.
-- **MCP**: agent có thể đọc status, groups, users, corpus và hỏi destination theo contract an toàn.
-
-> Nếu chỉ muốn “cài cho chủ dùng được”, đọc **[Quickstart cho người không biết code](docs/quickstart-non-coder.md)**.
+> Just want it running for the owner? Read the **[Non-coder quickstart](docs/quickstart-non-coder.md)**.
 >
-> Nếu giao repo cho Claude Code, Codex, Hermes hoặc agent khác, agent phải đọc **[AGENTS.md](AGENTS.md)** và **[Agent handoff](docs/agent-handoff.md)** trước khi chạy lệnh.
+> Handing this repo to Claude Code, Codex, Hermes or any other agent? The agent must read **[AGENTS.md](AGENTS.md)** and the **[Agent handoff](docs/agent-handoff.md)** before running any command.
 
 ---
 
+## Tóm tắt tiếng Việt
 
+Repo này là cầu nối Zalo cho agent. Hai đường tách biệt: **Personal QR** (không chính thức, dùng account riêng, chỉ nội bộ/demo) và **Zalo OA** (chính thức, dùng cho khách hàng). Mặc định **fail-closed** — chưa cấu hình thì không gửi gì cả.
+
+Cài nhanh: `bash setup.sh` rồi `npm start`, mở `http://127.0.0.1:3871`. Bắt đầu ở chế độ `listen_only`, kiểm tra dữ liệu đúng rồi mới mở thêm.
+
+Ba điều tuyệt đối không làm: không dán secret/OTP/PIN vào chat cho agent, không dùng account Zalo cá nhân chính để automation, không mở port 3871 thẳng ra Internet.
+
+Tài liệu còn lại viết bằng tiếng Anh để mọi agent đọc được. Câu lệnh và tên biến giữ nguyên, đọc lướt vẫn theo được.
+
+---
 
 ## Documentation map
 
@@ -33,7 +42,6 @@ Start here, in this order:
 | `docs/operations.md` · `docs/troubleshooting.md` | Running it day to day |
 | `SECURITY.md` · `CONTRIBUTING.md` | Reporting issues and sending changes |
 | `docs/internal/` | Design, spec, plan and verification notes kept for maintainers |
-
 
 ## Works with any AI coding tool
 
@@ -59,120 +67,119 @@ npm run doctor
 npm test
 ```
 
+## 1. Pick the right path before installing
 
-## 1. Chọn đúng đường trước khi cài
-
-| Nhu cầu | Chọn | Ghi chú |
+| What you need | Pick | Notes |
 |---|---|---|
-| Nghe group nội bộ rồi tổng hợp về một group điều hành | Personal QR | Không chính thức, dùng account riêng, không spam/broadcast |
-| Chat với khách, FAQ, lead, booking, thông báo chính thức | Zalo OA | Đường chính thức; cần OA credentials và HTTPS webhook |
-| Chưa biết chọn gì | Bắt đầu Personal QR ở `listen_only` | Không bật gửi tự động; chỉ kiểm tra dữ liệu trước |
+| Listen to internal groups and digest them into one ops group | Personal QR | Unofficial. Use a dedicated account. No spam, no broadcast |
+| Talk to customers: FAQ, leads, booking, official notices | Zalo OA | The official path. Needs OA credentials and an HTTPS webhook |
+| Not sure yet | Start with Personal QR in `listen_only` | No automatic sending. Inspect the data first |
 
-**Không dùng account Zalo cá nhân chính cho automation.** Không tự động nhập OTP/PIN, không bypass login, không gửi broadcast.
+**Do not use your main personal Zalo account for automation.** Never auto-enter OTP/PIN, never bypass login, never broadcast.
 
 ---
 
-## 2. Cài nhanh — không cần biết code
+## 2. Quick install — no coding required
 
-### Cần có
+### Requirements
 
-- Máy Linux hoặc macOS.
-- Node.js **22.5 trở lên**.
-- Một account Zalo riêng nếu dùng Personal QR.
-- Không cần API key để chạy Personal QR ở chế độ nghe/tổng hợp local.
+- A Linux or macOS machine.
+- Node.js **22.5 or newer**.
+- A dedicated Zalo account if you use Personal QR.
+- No API key is needed to run Personal QR in local listen/digest mode.
 
-### VPS, model và Telegram có bắt buộc không?
+### Are a VPS, a model, and Telegram required?
 
-- **VPS:** không bắt buộc để thử hoặc chạy local. Chỉ cần khi muốn chạy 24/7; MVP nên bắt đầu khoảng 1 vCPU / 1 GB RAM / 10 GB disk và phải có HTTPS/auth nếu truy cập từ ngoài. Đây là mức khởi điểm vận hành, không phải cam kết tải.
-- **Model/API key:** không bắt buộc cho `listen_only` hoặc local fallback. Chỉ cần Hermes API tương thích OpenAI `/v1/chat/completions` nếu muốn dùng LLM để phân tích/viết lại báo cáo. Repo không tự cài model và không tự cấp key.
-- **Telegram:** không bắt buộc cho core bridge. QR trên máy local/VPS được xem trong dashboard; bản repo hiện chưa tự forward ảnh QR qua Telegram.
-- **QR live:** có route thật `POST /api/accounts/:id/connect`, callback `QRCodeGenerated`, `GET /api/accounts/:id/qr` và dashboard hiển thị. Việc quét/xác nhận trên điện thoại vẫn là thao tác của chủ account.
+- **VPS:** not required to try it or run locally. Only needed for 24/7 operation. For an MVP, start around 1 vCPU / 1 GB RAM / 10 GB disk, and put HTTPS plus auth in front of it if it is reachable from outside. That is a starting point for operations, not a load guarantee.
+- **Model/API key:** not required for `listen_only` or the local fallback. You only need a Hermes API compatible with OpenAI's `/v1/chat/completions` if you want an LLM to analyse or rewrite digests. This repo does not install a model and does not issue keys.
+- **Telegram:** not required for the core bridge. The QR is shown in the dashboard on the local machine or VPS; this version does not forward the QR image over Telegram.
+- **Live QR:** there are real routes — `POST /api/accounts/:id/connect`, the `QRCodeGenerated` callback, `GET /api/accounts/:id/qr` — and the dashboard renders it. Scanning and confirming on the phone stays a manual action by the account owner.
 
-Nếu không biết Node.js đang có chưa, giao đúng câu này cho agent:
+If you do not know whether Node.js is installed, hand the agent exactly this:
 
-> “Hãy kiểm tra máy này có Node.js 22.5+ chưa. Nếu chưa, hướng dẫn tôi cài; không nhập secret, OTP hay PIN thay tôi.”
+> "Check whether this machine has Node.js 22.5+. If not, walk me through installing it. Do not enter any secret, OTP or PIN on my behalf."
 
-### Một lệnh cài
+### One install command
 
-Từ thư mục repo:
+From the repo directory:
 
 ```bash
 bash setup.sh
 ```
 
-Setup sẽ tự động:
+Setup will:
 
-1. kiểm tra Node.js;
-2. tạo `.env` local nếu chưa có;
-3. tạo `config/bots.json` từ file mẫu nếu chưa có;
-4. tạo thư mục dữ liệu với quyền local;
-5. chạy `npm ci`;
-6. chạy test, validate config, secret scan, syntax check và self-check;
-7. in ra bước tiếp theo bằng tiếng Việt.
+1. check Node.js;
+2. create a local `.env` if missing;
+3. create `config/bots.json` from the example if missing;
+4. create the data directory with local-only permissions;
+5. run `npm ci`;
+6. run tests, config validation, secret scan, syntax check and self-check;
+7. print the next step.
 
-Setup **không** đăng nhập Zalo, không quét QR, không gửi tin, không tự nhập OTP/PIN và không đụng credential thật.
+Setup does **not** log into Zalo, scan a QR, send messages, enter OTP/PIN, or touch real credentials.
 
-Nếu agent/CI cần chạy không hỏi:
+For agents or CI that must run unattended:
 
 ```bash
 bash setup.sh --non-interactive
 ```
 
-Muốn setup xong rồi chạy luôn foreground:
+To set up and immediately run in the foreground:
 
 ```bash
 bash setup.sh --start
 ```
 
-### Chạy dashboard
+### Run the dashboard
 
-Nếu chưa dùng `--start`:
+If you did not use `--start`:
 
 ```bash
 npm start
 ```
 
-Mở trình duyệt tại:
+Then open:
 
 ```text
 http://127.0.0.1:3871
 ```
 
-Dashboard mặc định bind localhost. Với máy remote/VPS, **không mở port thẳng ra Internet**; dùng reverse proxy HTTPS và token/auth riêng.
+The dashboard binds to localhost by default. On a remote machine or VPS, **do not expose the port directly to the Internet** — use an HTTPS reverse proxy with its own token/auth.
 
 ---
 
-## 3. Kết nối Personal QR lần đầu
+## 3. First Personal QR connection
 
-1. Chạy `npm start`.
-2. Mở dashboard.
-3. Bấm **Kết nối QR** — dashboard gọi route live và hiển thị ảnh QR.
-4. Dùng điện thoại quét QR bằng **account riêng**.
-5. Chờ trạng thái `connected`.
-6. Bấm **Quét group IDs** nếu cần cập nhật danh sách.
-7. Chọn một group làm **Destination group**.
-8. Thêm nguồn ở phần **Allowlist source**.
-9. Bắt đầu bằng `listen_only`.
-10. Chỉ khi đã kiểm tra dữ liệu đúng, chuyển một nguồn sang `digest_only`.
+1. Run `npm start`.
+2. Open the dashboard.
+3. Click **Connect QR** — the dashboard calls the live route and renders the QR image.
+4. Scan it from your phone using a **dedicated account**.
+5. Wait for status `connected`.
+6. Click **Scan group IDs** if the group list needs refreshing.
+7. Pick one group as the **destination group**.
+8. Add sources under **Allowlist source**.
+9. Start in `listen_only`.
+10. Only after the stored data looks right, move one source to `digest_only`.
 
-Ý nghĩa mode:
+What the modes mean:
 
-- `off`: tắt nguồn.
-- `listen_only`: chỉ lưu, không tổng hợp/gửi.
-- `digest_only`: đưa vào bản tổng hợp theo yêu cầu/lịch.
-- `alert_only`: chỉ candidate ưu tiên cao mới được xét cảnh báo.
-- `mention_only`: vẫn bị chặn reply khi `READ_ONLY_SOURCE=true`.
-- `reply_enabled`: không tự vượt qua Policy Guard; chỉ dùng khi policy riêng đã được review.
+- `off`: source disabled.
+- `listen_only`: store only. No digest, no send.
+- `digest_only`: included in digests on request or on schedule.
+- `alert_only`: only high-priority candidates are considered for alerts.
+- `mention_only`: still blocked from replying while `READ_ONLY_SOURCE=true`.
+- `reply_enabled`: does not override Policy Guard on its own. Use only with a reviewed policy.
 
-**Mặc định an toàn:** source không được trả lời; DM không trả lời; mention không trả lời; outbound chỉ đến destination đã cấu hình.
+**Safe defaults:** sources are not replied to, DMs are not replied to, mentions are not replied to, and outbound goes only to the configured destination.
 
-Với VPS headless, mở dashboard qua SSH tunnel hoặc reverse proxy HTTPS có auth. Không mở port `3871` trực tiếp ra Internet và không gửi QR/session vào log hoặc chat.
+On a headless VPS, reach the dashboard over an SSH tunnel or an authenticated HTTPS reverse proxy. Do not open port `3871` to the Internet, and never put a QR or session into logs or chat.
 
 ---
 
-## 4. Kiểm tra sau khi cài
+## 4. Verify the install
 
-Các lệnh không gửi tin thật:
+None of these send a real message:
 
 ```bash
 npm run doctor
@@ -184,184 +191,184 @@ npm run syntax-check
 npm run self-check
 ```
 
-Kiểm tra kết quả:
+What to look for:
 
-- `npm test`: toàn bộ test pass.
-- `npm run doctor`: không có lỗi cấu hình public/runtime.
-- `status`: không in cookie, IMEI, refresh token hay raw session.
-- `self-check`: destination/allowlist trống vẫn là trạng thái fail-closed bình thường.
+- `npm test`: everything passes.
+- `npm run doctor`: no public/runtime config errors.
+- `status`: never prints cookies, IMEI, refresh tokens or a raw session.
+- `self-check`: an empty destination/allowlist is a normal fail-closed state.
 
-Smoke test daemon:
+Daemon smoke test:
 
 ```bash
 npm run smoke
 ```
 
-`npm run smoke` chỉ kiểm tra health/MCP/safety. **Không gửi tin thật** nếu chưa đặt `BATTLE_SEND=true`.
+`npm run smoke` only checks health, MCP and safety. It **does not send a real message** unless `BATTLE_SEND=true` is set.
 
 ---
 
-## 5. OA chính thức
+## 5. Official OA
 
-Personal QR và OA là hai đường khác nhau. Đừng trộn session Personal với OAuth OA.
+Personal QR and OA are two different paths. Never mix a Personal session with OA OAuth.
 
-### Chuẩn bị local
+### Local preparation
 
 ```bash
 cp config/bots.example.json config/bots.json
 ```
 
-Mở `config/bots.json`, giữ bot ở `draft_first` và chỉ bật sau khi đã có credentials hợp lệ. File này đã bị ignore, không commit.
+Open `config/bots.json`, keep the bot on `draft_first`, and enable it only once valid credentials exist. That file is git-ignored and must not be committed.
 
-Credentials đặt trong `.env` hoặc secret manager local, **không dán vào chat, issue, README hay prompt agent**. Chỉ dùng tên biến đã khai báo trong `credential`:
+Put credentials in `.env` or a local secret manager — **never in chat, issues, the README, or an agent prompt**. Only the variable names declared under `credential` are used:
 
 - `ZALO_OA_APP_ID_DEMO_OA`
 - `ZALO_OA_APP_SECRET_DEMO_OA`
 - `ZALO_OA_REFRESH_TOKEN_DEMO_OA`
 - `ZALO_OA_WEBHOOK_SECRET`
 
-Giá trị thật không nằm trong repo public.
+Real values never live in the public repo.
 
 ### Webhook
 
-Route adapter:
+Adapter route:
 
 ```text
 POST /webhooks/zalo/oa/:bot_id
 ```
 
-Handler thực hiện ingress validation và normalize text event, sau đó acknowledge nhanh. Handler **không tự gọi AI và không tự gửi trả lời**. Workflow/agent bên ngoài phải có approval và policy riêng trước outbound.
+The handler validates ingress, normalises text events, and acknowledges quickly. It **does not call an AI and does not send a reply**. Any outbound must go through an external workflow or agent with its own approval and policy.
 
-Production cần:
+Production needs:
 
-- HTTPS reverse proxy;
-- signature hoặc authenticated edge;
-- giới hạn body;
-- log chỉ gồm event ID/receipt đã redact;
-- `draft_first` trước khi bật bất kỳ send path nào.
+- an HTTPS reverse proxy;
+- a signature check or an authenticated edge;
+- a body size limit;
+- logs limited to redacted event IDs/receipts;
+- `draft_first` before enabling any send path.
 
-Xem chi tiết: [docs/official-oa.md](docs/official-oa.md).
+Details: [docs/official-oa.md](docs/official-oa.md).
 
 ---
 
-## 6. Cấu trúc repo cho agent/CLI
+## 6. Repo layout for agents and CLIs
 
 ```text
-AGENTS.md                    luật bất biến cho mọi agent
-CLAUDE.md                    entrypoint cho Claude Code
-CODEX.md                     entrypoint/checklist cho Codex CLI
-README.md                    trang chủ và quickstart
-CONTRIBUTING.md              quy tắc đóng góp
-SECURITY.md                  cách báo lỗ hổng
-docs/internal/00-DESIGN.md                 kiến trúc
-docs/internal/01-SPEC.md                   contract I/O
-docs/internal/02-PLAN.md                   thứ tự build
-docs/internal/03-HARNESS.md                offline test harness
-docs/internal/04-VERIFY.md                 verification gate
-docs/internal/05-CONTEXT.md                runtime constraints
+AGENTS.md                    non-negotiable rules for every agent
+CLAUDE.md                    entrypoint for Claude Code
+CODEX.md                     entrypoint/checklist for Codex CLI
+README.md                    home page and quickstart
+CONTRIBUTING.md              contribution rules
+SECURITY.md                  how to report a vulnerability
+docs/internal/00-DESIGN.md   architecture
+docs/internal/01-SPEC.md     I/O contract
+docs/internal/02-PLAN.md     build order
+docs/internal/03-HARNESS.md  offline test harness
+docs/internal/04-VERIFY.md   verification gate
+docs/internal/05-CONTEXT.md  runtime constraints
 
-setup.sh / install.sh        cài một lệnh
+setup.sh / install.sh        one-command install
 scripts/setup.js             setup + doctor + dashboard info
 scripts/public-gate.js       validate-config/secret-scan/syntax-check
 
-src/                       runtime deterministic
+src/                       deterministic runtime
   policy.js                inbound/outbound guard
-  store.js                 SQLite local
+  store.js                 local SQLite
   zalo_runtime.js          personal QR listener
   bot_registry.js          registry + credential references
   oa_adapter.js            official OA OAuth/send boundary
   oa_webhook.js            official OA ingress boundary
-  server.js                dashboard/API/webhook route
+  server.js                dashboard/API/webhook routes
 
-config/bots.example.json     registry mẫu public
-config/bots.json             registry local, ignored
-.env.example                biến môi trường mẫu
-.env                        local, ignored
+config/bots.example.json     public example registry
+config/bots.json             local registry, git-ignored
+.env.example                 example environment variables
+.env                         local, git-ignored
 
-data/                      SQLite/session/QR, ignored
-public/                     dashboard static
-mcp/                        MCP stdio facade
+data/                      SQLite/session/QR, git-ignored
+public/                    dashboard static files
+mcp/                       MCP stdio facade
 test/                      offline tests
 ```
 
 ---
 
-## 7. Luật dành cho agent, Claude Code và Codex
+## 7. Rules for agents, Claude Code and Codex
 
-Agent phải làm theo thứ tự:
+Agents work in this order:
 
 ```text
-1. đọc AGENTS.md
-2. đọc docs/agent-handoff.md
-3. chạy npm run doctor
-4. đọc đúng file liên quan, không nạp cả repo vô ích
-5. sửa nhỏ, test ngay
-6. báo evidence thật: command, exit code, file, test
+1. read AGENTS.md
+2. read docs/agent-handoff.md
+3. run npm run doctor
+4. open only the relevant files — do not load the whole repo
+5. make small changes and test immediately
+6. report real evidence: command, exit code, file, test
 ```
 
-Agent **không được**:
+An agent must **never**:
 
-- hỏi chủ dán API key, refresh token, cookie, IMEI, session, OTP hoặc PIN vào chat;
-- tự nhập OTP/PIN hoặc tự xác nhận login bên thứ ba;
-- bật public send, broadcast, deploy, systemd, credential change nếu chưa được duyệt;
-- coi “đã viết code” là “đã chạy”; mọi claim done phải có runtime evidence;
-- nói đã publish GitHub nếu chưa có auth và receipt thật;
-- gọi LLM để quyết định các gate deterministic như empty, duplicate, quota, policy, signature.
+- ask the owner to paste an API key, refresh token, cookie, IMEI, session, OTP or PIN into chat;
+- enter an OTP/PIN or confirm a third-party login on the owner's behalf;
+- enable public send, broadcast, deploy, systemd or credential changes without approval;
+- treat "code written" as "code ran" — every done claim needs runtime evidence;
+- claim a GitHub publish without real auth and a real receipt;
+- use an LLM to decide deterministic gates such as empty, duplicate, quota, policy or signature.
 
-Bộ chỉ dẫn đầy đủ: [docs/agent-handoff.md](docs/agent-handoff.md).
+Full instructions: [docs/agent-handoff.md](docs/agent-handoff.md).
 
 ---
 
-## 8. Troubleshooting nhanh
+## 8. Quick troubleshooting
 
 ### `Node.js 22.5+ is required`
 
-Cài Node.js bản LTS mới, mở terminal mới rồi chạy:
+Install a current Node.js LTS, open a new terminal, then:
 
 ```bash
 node --version
 bash setup.sh
 ```
 
-### Dashboard không mở
+### The dashboard will not open
 
 ```bash
 npm run doctor
 npm start
 ```
 
-Nếu port 3871 đang dùng, chạy với port khác:
+If port 3871 is taken, use another one:
 
 ```bash
 PORT=3872 npm start
 ```
 
-Sau đó mở `http://127.0.0.1:3872`.
+Then open `http://127.0.0.1:3872`.
 
-### QR không hiện
+### The QR does not appear
 
-- Kiểm tra `npm start` còn đang chạy.
-- Bấm **Kết nối QR** lại.
-- Không nhập PIN/OTP vào agent; tự thao tác trên điện thoại/app.
-- Dùng account riêng, không dùng account cá nhân chính.
+- Check that `npm start` is still running.
+- Click **Connect QR** again.
+- Do not give a PIN/OTP to an agent — do it yourself on the phone/app.
+- Use a dedicated account, not your main personal one.
 
-### `not_connected` khi digest/send
+### `not_connected` on digest/send
 
-Đây là chặn an toàn. Kết nối QR trước, kiểm tra destination, rồi chạy lại. Không xoá session trừ khi chủ động muốn đăng nhập lại.
+That is the safety block doing its job. Connect the QR, check the destination, then retry. Do not delete the session unless you intend to log in again.
 
 ### `destination_unset`
 
-Vào dashboard, chọn Destination group. Không đặt destination bằng ID đoán mò.
+Open the dashboard and pick a destination group. Never set a destination from a guessed ID.
 
-### `npm test` fail
+### `npm test` fails
 
-Không bỏ qua test. Giao agent câu:
+Do not skip tests. Hand the agent this:
 
-> “Chạy npm test, đọc test fail đầu tiên, xác định nguyên nhân bằng file/test liên quan, sửa tối thiểu rồi chạy lại. Không đụng secret/runtime data.”
+> "Run npm test, read the first failing test, find the cause in the related file/test, make the smallest fix, and run it again. Do not touch secrets or runtime data."
 
-### Muốn dừng ngay outbound
+### Stop all outbound immediately
 
-Trong dashboard bấm **Kill switch ON**, hoặc:
+Click **Kill switch ON** in the dashboard, or:
 
 ```bash
 curl -X POST http://127.0.0.1:3871/api/kill-switch \
@@ -371,46 +378,46 @@ curl -X POST http://127.0.0.1:3871/api/kill-switch \
 
 ---
 
-## 9. Dừng, backup và dữ liệu
+## 9. Stopping, backups and data
 
-Dừng foreground bằng `Ctrl+C`.
+Stop a foreground run with `Ctrl+C`.
 
-Dữ liệu local nằm trong `data/` và không được commit. Session Personal được lưu quyền hạn chế. Không gửi database/session/QR cho agent hoặc bên ngoài nếu chưa redact.
+Local data lives in `data/` and is never committed. The Personal session is stored with restricted permissions. Never hand the database, session or QR to an agent or a third party without redacting it first.
 
-Trước khi đổi cấu hình lớn:
+Before a large config change:
 
 ```bash
 cp .env .env.backup.local
 cp config/bots.json config/bots.backup.local.json
 ```
 
-Các file backup local này cũng không được commit.
+Those local backups must not be committed either.
 
 ---
 
 ## 10. Production checklist
 
-Chưa coi là production chỉ vì dashboard đã mở. Cần đủ:
+An open dashboard is not production. You need all of:
 
-- account/OA ownership rõ;
-- allowlist và destination đã review;
-- test xanh;
-- secret ở secret manager/env, không ở Git;
-- HTTPS + auth cho endpoint public;
-- kill switch đã thử;
-- logs không lộ PII/credential;
-- systemd/Docker chỉ bật sau approval;
-- live smoke có evidence thật;
-- rollback: pause/disconnect/disable bot đã kiểm tra.
+- clear account/OA ownership;
+- a reviewed allowlist and destination;
+- green tests;
+- secrets in a secret manager or env, never in Git;
+- HTTPS + auth on any public endpoint;
+- a kill switch you have actually tested;
+- logs free of PII and credentials;
+- systemd/Docker enabled only after approval;
+- a live smoke test with real evidence;
+- a tested rollback: pause, disconnect, disable bot.
 
-Systemd file trong repo chỉ là template, không tự enable.
+The systemd file in this repo is a template. It does not enable itself.
 
 ---
 
-## Tài liệu tiếp theo
+## Next documents
 
-- [Quickstart người không biết code](docs/quickstart-non-coder.md)
-- [Hướng dẫn cài đặt](docs/install.md)
+- [Non-coder quickstart](docs/quickstart-non-coder.md)
+- [Install guide](docs/install.md)
 - [Agent handoff](docs/agent-handoff.md)
 - [Personal QR](docs/personal-qr.md)
 - [Official OA](docs/official-oa.md)
@@ -423,6 +430,6 @@ Systemd file trong repo chỉ là template, không tự enable.
 
 ## License
 
-MIT. Xem [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
 
-**Không có “an toàn 100%”.** Official OA là đường nên ưu tiên cho khách hàng; Personal QR là đường unofficial có rủi ro nền tảng và chỉ nên dùng trong boundary đã review.
+**There is no "100% safe".** Official OA is the path to prefer for customers; Personal QR is unofficial, carries platform risk, and belongs only inside a boundary you have reviewed.

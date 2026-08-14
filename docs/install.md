@@ -1,63 +1,65 @@
-# Hướng dẫn cài đặt
+# Install guide
+
+> **Tiếng Việt:** Cần Node.js 22.5+ trên Linux/macOS. Chạy `bash setup.sh` là xong. VPS, model AI và Telegram đều **không bắt buộc** để chạy chế độ `listen_only`.
 
 ## Supported runtime
 
 - Node.js 22.5+.
-- Linux hoặc macOS.
-- npm đi cùng Node.js.
-- Personal QR cần một account Zalo riêng.
-- OA cần credentials do chủ OA quản lý.
+- Linux or macOS.
+- npm, which ships with Node.js.
+- Personal QR needs a dedicated Zalo account.
+- OA needs credentials held by the OA owner.
 
-## Điều kiện thật — cần gì, không cần gì
+## What you actually need — and what you do not
 
-### Bắt buộc cho bản Personal QR
+### Required for Personal QR
 
-- Một máy chạy Linux hoặc macOS.
-- Node.js `22.5+` và npm.
-- Internet ổn định để cài dependency và kết nối Zalo Web.
-- Một account Zalo **riêng cho bridge** và điện thoại để tự quét QR.
+- A Linux or macOS machine.
+- Node.js `22.5+` and npm.
+- A stable connection to install dependencies and reach Zalo Web.
+- A Zalo account **dedicated to the bridge**, plus a phone to scan the QR yourself.
 
-Không cần VPS hay model AI để cài và chạy listener ở chế độ `listen_only`.
+You do not need a VPS or an AI model to install and run the listener in `listen_only`.
 
-### Khi nào cần VPS
+### When you need a VPS
 
-VPS chỉ cần khi muốn chạy 24/7 hoặc không muốn phụ thuộc laptop. VPS nên có:
+Only for 24/7 operation, or when you do not want to depend on a laptop. A VPS should have:
 
-- Ubuntu/Debian hiện hành;
-- ít nhất khoảng 1 vCPU, 1 GB RAM và 10 GB disk cho MVP local — đây là mức khởi điểm vận hành, không phải benchmark bảo đảm;
-- HTTPS reverse proxy nếu dashboard/webhook cần truy cập từ ngoài;
-- firewall, secret env/secret manager và backup riêng cho `data/`;
-- cách mở dashboard an toàn trong lúc quét QR: SSH tunnel hoặc reverse proxy có auth.
+- a current Ubuntu/Debian;
+- roughly 1 vCPU, 1 GB RAM and 10 GB disk for a local MVP — a starting point for operations, not a guaranteed benchmark;
+- an HTTPS reverse proxy if the dashboard/webhook must be reachable from outside;
+- a firewall, secrets in env or a secret manager, and separate backups for `data/`;
+- a safe way to open the dashboard while scanning the QR: an SSH tunnel, or a reverse proxy with auth.
 
-Không mở `3871` thẳng ra Internet. QR/session là auth material; không gửi chúng vào log, issue hoặc chat.
+Do not expose `3871` to the Internet. A QR and a session are auth material — never put them in logs, issues or chat.
 
-### Khi nào cần model/API key
+### When you need a model/API key
 
-- `listen_only`: **không cần model** và không cần API key.
-- Local fallback report: không cần model; nội dung do formatter deterministic tạo.
-- Phân tích/suy luận bằng Hermes: cần một Hermes API server tương thích OpenAI `/v1/chat/completions`, cùng `HERMES_API_BASE`, `HERMES_API_MODEL` và key trong env nếu server yêu cầu.
-- Không có model/API key thì hệ thống không tự bịa; nó dùng fallback hoặc giữ ở trạng thái review/dry-run tùy workflow.
+- `listen_only`: **no model** and no API key.
+- Local fallback reports: no model. Content comes from a deterministic formatter.
+- Analysis/reasoning through Hermes: needs a Hermes API server compatible with OpenAI's `/v1/chat/completions`, plus `HERMES_API_BASE`, `HERMES_API_MODEL`, and a key in env if the server requires one.
+- With no model or key, the system does not invent anything. It uses the fallback, or stays in review/dry-run depending on the workflow.
 
-Repo này không tự cài model, không tự cấp API key và không mặc định phụ thuộc OpenRouter/Anthropic/OpenAI.
+This repo does not install a model, does not issue API keys, and does not depend on OpenRouter/Anthropic/OpenAI by default.
 
-### Có cần Telegram không?
+### Is Telegram required?
 
-Không để cài/chạy core bridge. Telegram chỉ là kênh vận hành tùy chọn do lớp triển khai bên ngoài cung cấp. Trên VPS headless, bản repo hiện hiển thị QR qua dashboard an toàn hoặc SSH tunnel; nó **chưa tự gửi ảnh QR vào Telegram**.
+No — not to install or run the core bridge. Telegram is an optional operations channel supplied by an outer deployment layer. On a headless VPS this version shows the QR through the dashboard or an SSH tunnel; it **does not send the QR image to Telegram**.
 
-## Cài bằng wizard
+## Install with the wizard
 
 ```bash
 bash setup.sh
 ```
 
-Alias tương đương:
+Equivalent aliases:
 
 ```bash
 bash install.sh
 npm run setup
 ```
 
-Tham số:
+Flags:
 
 ```bash
 bash setup.sh --non-interactive
@@ -67,21 +69,21 @@ node scripts/setup.js doctor
 node scripts/setup.js dashboard-info
 ```
 
-### Wizard làm gì
+### What the wizard does
 
-- kiểm tra phiên bản Node;
-- tạo `.env` từ `.env.example` nếu chưa có;
-- tạo `config/bots.json` từ example nếu chưa có;
-- tạo `data/`, `data/sessions/`, `data/qr/` với permission hạn chế;
-- cài dependency bằng `npm ci`;
-- chạy test và các gate offline;
-- không login, không quét QR, không gửi message.
+- checks the Node version;
+- creates `.env` from `.env.example` if missing;
+- creates `config/bots.json` from the example if missing;
+- creates `data/`, `data/sessions/` and `data/qr/` with restricted permissions;
+- installs dependencies with `npm ci`;
+- runs the tests and the offline gates;
+- never logs in, scans a QR, or sends a message.
 
-Wizard không ghi đè `.env` hoặc `config/bots.json` đã tồn tại.
+The wizard does not overwrite an existing `.env` or `config/bots.json`.
 
-## Cài thủ công
+## Manual install
 
-Chỉ dùng khi wizard không phù hợp:
+Only when the wizard does not fit:
 
 ```bash
 node --version
@@ -101,23 +103,23 @@ npm run self-check
 
 ### Local
 
-- giữ `HOST=127.0.0.1`;
-- mở dashboard trên cùng máy;
-- không cần reverse proxy;
-- phù hợp thử nghiệm và vận hành cá nhân.
+- keep `HOST=127.0.0.1`;
+- open the dashboard on the same machine;
+- no reverse proxy needed;
+- good for testing and personal operation.
 
 ### VPS
 
-- giữ service bind localhost;
-- dùng reverse proxy HTTPS;
-- đặt dashboard token trong secret env;
-- không gửi session/QR/cookie qua Telegram;
-- dùng systemd template sau approval, không enable tự động.
+- keep the service bound to localhost;
+- put an HTTPS reverse proxy in front;
+- keep the dashboard token in a secret env;
+- never send a session/QR/cookie over Telegram;
+- use the systemd template only after approval — it does not enable itself.
 
-## Sau cài đặt
+## After installing
 
 ```bash
 npm start
 ```
 
-Tài liệu thao tác: [quickstart-non-coder.md](quickstart-non-coder.md).
+Operating instructions: [quickstart-non-coder.md](quickstart-non-coder.md).

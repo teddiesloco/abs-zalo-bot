@@ -5,7 +5,7 @@
 ### T1 — Public-safe baseline
 - Replace customer-specific defaults in docs, config, source comments and tests.
 - Add `AGENTS.md`, MIT license, security policy, issue templates and CI.
-- Acceptance: repository scan không còn customer/project identity, real IDs, hoặc phone-like defaults.
+- Acceptance: a repository scan finds no customer/project identity, real IDs, or phone-like defaults.
 
 ### T2 — Bot registry
 - Add schema validator and example `config/bots.example.json`.
@@ -33,10 +33,10 @@
 - Secret scan, public-file inventory, package metadata, git diff review.
 - Acceptance: no runtime data tracked; README states OA/personal boundaries; GitHub publish remains blocked until auth exists.
 
-## Không làm
+## Out of scope
 
-- Không merge minified third-party n8n package vào runtime.
-- Không tự động phát hành message từ OA webhook trong core.
-- Không thêm broadcast, friend mutation, group admin hoặc arbitrary personal send.
-- Không enable systemd trên máy này trong task productization.
-- Không tạo repo public trước khi secret scan và test evidence sạch.
+- Do not merge a minified third-party n8n package into the runtime.
+- Do not auto-send messages from the OA webhook in the core.
+- Do not add broadcast, friend-list mutation, group administration, or arbitrary personal sends.
+- Do not enable systemd on this machine during the productization task.
+- Do not make the repo public before the secret scan and test evidence are clean.

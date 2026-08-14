@@ -3,36 +3,36 @@
 ## Local artifact
 
 - [ ] `npm ci` exit 0.
-- [ ] `npm test` exit 0, test count ghi từ output thật.
-- [ ] `npm run self-check` exit 0; output không có cookie, imei, token, refresh token, phone hoặc raw session.
-- [ ] `npm run validate-config` kiểm tra example registry và TOML.
-- [ ] `npm run secret-scan` exit 0 trên tracked/public files.
-- [ ] `node --check` cho mọi `.js` source mới.
+- [ ] `npm test` exits 0, with the test count taken from real output.
+- [ ] `npm run self-check` exits 0, and the output contains no cookie, IMEI, token, refresh token, phone number or raw session.
+- [ ] `npm run validate-config` checks the example registry and the TOML.
+- [ ] `npm run secret-scan` exits 0 across tracked/public files.
+- [ ] `node --check` passes on every new `.js` source file.
 
 ## OA adapter
 
-- [ ] Fake fetch chứng minh token URL, form fields, secret header policy, expiry và rotation.
-- [ ] Fake fetch chứng minh send URL, method, `access_token` header, exact JSON body.
-- [ ] Provider 4xx/5xx được phân loại; không retry credential/policy.
-- [ ] Webhook normalize không gọi AI/provider và trả event ID ổn định.
+- [ ] Fake fetch proves the token URL, form fields, secret header policy, expiry and rotation.
+- [ ] Fake fetch proves the send URL, method, `access_token` header and exact JSON body.
+- [ ] Provider 4xx/5xx responses are classified, and credential/policy errors are not retried.
+- [ ] Webhook normalisation calls no AI or provider and returns a stable event ID.
 
 ## Personal QR
 
-- [ ] QR connect endpoint trả nhanh trước khi user quét.
-- [ ] session path nằm ngoài Git, mode 0600.
-- [ ] `GET /healthz` phân biệt persisted session với live listener.
-- [ ] one-listener/account và dedicated-account warning hiện trong docs.
+- [ ] The QR connect endpoint returns quickly, before the user scans.
+- [ ] The session path is outside Git, with mode 0600.
+- [ ] `GET /healthz` distinguishes a persisted session from a live listener.
+- [ ] The one-listener-per-account rule and the dedicated-account warning appear in the docs.
 
 ## Deployment
 
-- [ ] Dockerfile/Compose parse và healthcheck trỏ `/healthz`.
-- [ ] systemd chỉ là template, không enabled.
-- [ ] bind mặc định localhost hoặc reverse proxy có auth; không expose dashboard token qua query trong docs.
+- [ ] The Dockerfile/Compose parses and its healthcheck points at `/healthz`.
+- [ ] systemd is a template only, never enabled.
+- [ ] The default bind is localhost, or an authenticated reverse proxy, and no doc exposes the dashboard token through a query string.
 
 ## Public release
 
-- [ ] `git ls-files` không gồm `data/`, `.env`, session, QR, database, logs.
-- [ ] Không còn customer/project identity trong default source/config/test.
-- [ ] README phân biệt OA official và personal unofficial.
-- [ ] `git diff --check` sạch.
-- [ ] GitHub remote/repo visibility đọc lại sau publish; nếu auth thiếu thì báo blocked, không giả publish.
+- [ ] `git ls-files` includes no `data/`, `.env`, session, QR, database or logs.
+- [ ] No customer/project identity remains in the default source, config or tests.
+- [ ] The README distinguishes official OA from unofficial personal.
+- [ ] `git diff --check` is clean.
+- [ ] GitHub remote/repo visibility is re-read after publishing; if auth is missing, report blocked rather than faking a publish.

@@ -14,30 +14,34 @@ setup -> connect QR manually -> discover -> choose destination
 -> pause/kill switch -> disconnect
 ```
 
-## QR thật nằm ở đâu?
+## Where the real QR comes from
 
-Flow live của Personal QR là:
+The live Personal QR flow is:
 
 ```text
 POST /api/accounts/default/connect
   -> zca-js loginQR()
   -> QRCodeGenerated callback
-  -> dashboard nhận ảnh QR
-  -> chủ tự quét bằng điện thoại
-  -> trạng thái connected
+  -> dashboard receives the QR image
+  -> owner scans it on their own phone
+  -> status becomes connected
 ```
 
-Dashboard lấy lại mã hiện tại qua:
+The dashboard re-fetches the current code with:
 
 ```text
 GET /api/accounts/default/qr
 ```
 
-Nếu chạy trên máy local, mở dashboard tại `http://127.0.0.1:3871`. Nếu chạy trên VPS không có màn hình, dùng SSH tunnel hoặc reverse proxy HTTPS có auth để mở dashboard trên máy của chủ. Repo hiện **không tự gửi QR sang Telegram** và agent không được tự nhập OTP/PIN.
+Running locally, open the dashboard at `http://127.0.0.1:3871`. On a headless VPS, use an SSH
+tunnel or an authenticated HTTPS reverse proxy to open the dashboard on the owner's machine.
+This repo **does not forward the QR to Telegram**, and an agent must never enter an OTP/PIN.
 
-`force_qr=true` dùng khi mã cũ hết hạn hoặc cần bắt đầu phiên quét mới. QR thường có thời hạn ngắn; nếu hết hạn, bấm kết nối lại để tạo mã mới.
+Use `force_qr=true` when the previous code has expired or a fresh scan session is needed. QR
+codes are short-lived; if one expires, click connect again to generate a new one.
 
-Đây là QR đăng nhập **Personal Zalo qua thư viện không chính thức**, không phải QR của Zalo OA và không phải cam kết không bị khóa tài khoản.
+This is a **Personal Zalo login QR issued through an unofficial library**. It is not a Zalo OA
+QR, and it is not a promise that the account will never be locked.
 
 ## What the agent may do
 

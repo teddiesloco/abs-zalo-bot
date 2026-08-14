@@ -1,25 +1,25 @@
 # ABS-Zalo-Bot — Design
 
-## Định vị
+## Positioning
 
-ABS Zalo Bot là adapter mã nguồn mở để đóng gói Zalo thành một channel adapter cho Hermes Agent, Claude Code, Codex, n8n và các agent runtime khác.
+ABS Zalo Bot is an open-source adapter that packages Zalo as a channel adapter for Hermes Agent, Claude Code, Codex, n8n and other agent runtimes.
 
-Một bản cài có thể quản lý nhiều bot độc lập. Mỗi bot có `bot_id`, adapter, tenant, session/credential, allowlist, policy và audit riêng.
+One installation can manage several independent bots. Each bot has its own `bot_id`, adapter, tenant, session/credential, allowlist, policy and audit trail.
 
-## Nguyên tắc lõi
+## Core principles
 
-- **Adapter trước, nền tảng sau:** agent runtime nào cũng dùng cùng contract; không patch core agent.
-- **Official first:** Zalo OA là đường production mặc định; Zalo cá nhân QR là adapter tùy chọn, dedicated account, rủi ro ToS ghi rõ.
-- **Fail-closed:** chưa cấu hình bot, token, allowlist hoặc outbound policy thì không gửi.
-- **One listener/account:** không chạy hai listener trên cùng nick cá nhân.
-- **Credential isolation:** token/session chỉ ở runtime local, không vào Git, prompt, log, response status hay memory.
-- **Human boundary:** tạo draft không đồng nghĩa gửi; publish, broadcast, credential và deploy cần approval riêng.
-- **Deterministic core:** normalize, dedupe, rate-limit, token refresh, routing và policy không giao cho LLM.
+- **Adapter first, platform second:** every agent runtime uses the same contract. Never patch the core agent.
+- **Official first:** Zalo OA is the default production path. Personal QR is an optional adapter, on a dedicated account, with its ToS risk stated openly.
+- **Fail-closed:** with no configured bot, token, allowlist or outbound policy, nothing is sent.
+- **One listener per account:** never run two listeners on the same personal account.
+- **Credential isolation:** tokens and sessions stay in the local runtime — never in Git, prompts, logs, status responses or memory.
+- **Human boundary:** drafting is not sending. Publish, broadcast, credential changes and deploys each need their own approval.
+- **Deterministic core:** normalisation, dedupe, rate limiting, token refresh, routing and policy are never handed to an LLM.
 
-## Kiến trúc
+## Architecture
 
 ```text
-Claude Code / Codex / n8n / agent runtime của bạn
+Claude Code / Codex / n8n / your agent runtime
                          |
               ABS channel contract + MCP
                          |
@@ -37,29 +37,29 @@ Claude Code / Codex / n8n / agent runtime của bạn
                   approved outbound
 ```
 
-## Luồng onboarding
+## Onboarding flow
 
-1. Agent đọc `AGENTS.md` và `docs/agent-handoff.md`.
-2. Tạo `bots.json` từ `config/bots.example.json`; không ghi secret.
-3. Với personal: mở dashboard, tạo QR, user quét trên điện thoại, session lưu local 0600.
-4. Với OA: cấu hình app ID/secret/refresh token qua env, đăng ký webhook public HTTPS.
-5. Chạy self-check offline trước; foreground verify sau; systemd/Docker 24/7 chỉ bật sau review.
+1. The agent reads `AGENTS.md` and `docs/agent-handoff.md`.
+2. Create `bots.json` from `config/bots.example.json`. Never write a secret into it.
+3. For personal: open the dashboard, generate the QR, the user scans it on their phone, and the session is stored locally with mode 0600.
+4. For OA: configure app ID/secret/refresh token through env, then register a public HTTPS webhook.
+5. Run the offline self-check first, verify in the foreground next, and enable systemd/Docker 24/7 only after review.
 
-## Phạm vi v0.1
+## Scope of v0.1
 
-- Personal QR runtime hiện có, multi-account schema-ready và onboarding endpoint.
-- OA OAuth refresh, webhook normalize và text send adapter có fetch injection để test offline.
+- The existing Personal QR runtime, a multi-account-ready schema, and the onboarding endpoint.
+- OA OAuth refresh, webhook normalisation, and a text-send adapter with fetch injection for offline tests.
 - Bot registry/config example, MCP facade, n8n workflow starter, Docker Compose, systemd template.
-- Public-safe docs, CI, secret scan và deterministic test harness.
+- Public-safe docs, CI, secret scanning and a deterministic test harness.
 
-## Không làm trong v0.1
+## Out of scope for v0.1
 
-- Không bypass login, CAPTCHA, rate limit hay ToS của Zalo.
-- Không tự động spam/broadcast bằng nick cá nhân.
-- Không tự tạo OA, tự đăng ký app, tự nhập OTP/PIN hoặc tự xác nhận production.
-- Không gắn AI provider bắt buộc vào core; workflow có thể dùng Hermes, Gemini, DeepSeek hoặc provider khác qua HTTP.
-- Không hứa “an toàn 100%”; official OA giảm rủi ro nền tảng, còn policy/rate-limit vẫn là trách nhiệm triển khai.
+- No bypassing Zalo login, CAPTCHA, rate limits or ToS.
+- No automated spam or broadcast from a personal account.
+- No creating an OA, registering an app, entering an OTP/PIN, or self-approving production.
+- No mandatory AI provider in the core. A workflow may use Hermes, Gemini, DeepSeek or any other provider over HTTP.
+- No promise of "100% safe". Official OA lowers platform risk; policy and rate limiting remain the deployer's responsibility.
 
-## Định nghĩa Done
+## Definition of done
 
-Một clone sạch phải có thể: `npm ci` → `npm test` → `npm run self-check` → chạy dashboard localhost; đọc được contract từ Claude Code/Codex; tạo personal QR path hoặc OA token path mà không cần secret trong repo; mọi outbound đều có policy/audit evidence.
+A clean clone must be able to run `npm ci` → `npm test` → `npm run self-check` → the localhost dashboard; expose its contract to Claude Code/Codex; set up either the personal QR path or the OA token path with no secret in the repo; and produce policy/audit evidence for every outbound message.

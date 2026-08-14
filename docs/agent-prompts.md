@@ -1,50 +1,52 @@
 # Copy-paste prompts for agents
 
-Các prompt dưới đây dành cho chủ không biết code. Có thể dán nguyên văn vào Claude Code, Codex CLI, Hermes hoặc agent tương tự khi đang đứng trong thư mục repo.
+These prompts are for an owner who does not write code. Paste one as-is into Claude Code, Codex CLI, Hermes or a similar agent while sitting in the repo directory.
 
-## Cài lần đầu
+> **Tiếng Việt:** Mỗi khối dưới đây dán nguyên văn cho agent. Chúng đã kèm sẵn ranh giới an toàn — không in secret, không gửi tin thật, không deploy — nên cứ dùng thẳng, đừng rút gọn.
+
+## First install
 
 ```text
-Đọc AGENTS.md, docs/agent-handoff.md và README.md trước. Kiểm tra Node.js 22.5+. Chạy bash setup.sh --non-interactive. Không yêu cầu hoặc in secret, cookie, IMEI, QR/session, OTP/PIN. Không đăng nhập, không gửi tin và không deploy. Sau đó báo command, exit code và bước tiếp theo bằng tiếng Việt dễ hiểu.
+Read AGENTS.md, docs/agent-handoff.md and README.md first. Check for Node.js 22.5+. Run bash setup.sh --non-interactive. Never request or print a secret, cookie, IMEI, QR/session, OTP or PIN. Do not log in, do not send messages, do not deploy. Then report the command, the exit code and the next step in plain language I can follow.
 ```
 
-## Mở cho chủ dùng
+## Open it up for the owner
 
 ```text
-Đọc docs/agent-handoff.md. Chạy npm run doctor, rồi start server foreground nếu doctor pass. Kiểm tra GET /healthz trước khi nói server đã sẵn sàng. In URL dashboard nhưng không in token. Hướng dẫn tôi tự quét QR trên điện thoại; không tự nhập OTP/PIN. Giữ source ở listen_only và không gửi tin thật.
+Read docs/agent-handoff.md. Run npm run doctor, then start the server in the foreground if doctor passes. Check GET /healthz before telling me the server is ready. Print the dashboard URL but never the token. Walk me through scanning the QR on my own phone; do not enter an OTP/PIN for me. Keep sources on listen_only and send no real messages.
 ```
 
-## Kiểm tra trạng thái
+## Check the current state
 
 ```text
-Không sửa gì và không gửi tin. Chạy npm run doctor, npm run status và healthz. Giải thích: connected chưa, listener sống chưa, destination đã đặt chưa, source mode nào đang bật, kill switch đang ở đâu. Không hiển thị raw session hay secret.
+Change nothing and send nothing. Run npm run doctor, npm run status and healthz. Explain: is it connected, is the listener alive, is a destination set, which source mode is active, and where the kill switch is. Do not display a raw session or any secret.
 ```
 
-## Sửa lỗi test
+## Fix failing tests
 
 ```text
-Đọc AGENTS.md và internal/04-VERIFY.md. Chạy npm test. Chỉ đọc file liên quan đến test fail đầu tiên. Sửa tối thiểu, chạy lại test và public gates. Không bỏ qua test, không tắt Policy Guard, không đụng .env/data/session.
+Read AGENTS.md and internal/04-VERIFY.md. Run npm test. Open only the files related to the first failing test. Make the smallest fix, then re-run the tests and the public gates. Do not skip tests, do not disable Policy Guard, and do not touch .env, data/ or the session.
 ```
 
-## Muốn bật OA
+## Turn on OA
 
 ```text
-Đọc docs/official-oa.md và internal/01-SPEC.md. Chỉ kiểm tra registry example, env variable names, webhook signature/normalize bằng fixture. Không yêu cầu tôi dán credential vào chat. Không bật approved_send, không gửi provider message, không publish/deploy.
+Read docs/official-oa.md and internal/01-SPEC.md. Only verify the example registry, the env variable names, and the webhook signature/normalisation using fixtures. Do not ask me to paste a credential into chat. Do not enable approved_send, do not send a provider message, do not publish or deploy.
 ```
 
-## Muốn chuẩn bị public release
+## Prepare a public release
 
 ```text
-Đọc docs/release-checklist.md. Chạy npm ci, npm test, npm run validate-config, npm run secret-scan, npm run syntax-check, npm run self-check và git diff --check. Báo blocked nếu chưa có GitHub auth/remote/publish receipt; không giả định đã public.
+Read docs/release-checklist.md. Run npm ci, npm test, npm run validate-config, npm run secret-scan, npm run syntax-check, npm run self-check and git diff --check. Report blocked if there is no GitHub auth, remote, or publish receipt — do not assume anything is already public.
 ```
 
-## Format báo cáo mong muốn
+## Expected report format
 
 ```text
-Kết luận:
-Đã làm:
+Conclusion:
+Did:
 Evidence:
-Ảnh hưởng:
-Còn lại:
-Bước tiếp theo:
+Impact:
+Remaining:
+Next step:
 ```

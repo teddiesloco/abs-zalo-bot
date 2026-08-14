@@ -1,8 +1,10 @@
-# Agent handoff — đọc trước khi làm việc
+# Agent handoff — read this before doing anything
 
-Tài liệu này là context packet cho Claude Code, Codex CLI, Hermes, OpenCode hoặc agent khác. Agent không có quyền phát ngôn/thay mặt chủ trong public action; chỉ làm trong boundary đã được duyệt.
+This is the context packet for Claude Code, Codex CLI, Hermes, OpenCode or any other agent. An agent has no authority to speak or act for the owner in any public action. Work only inside the approved boundary.
 
-## Boot sequence bắt buộc
+> **Tiếng Việt:** Đọc `AGENTS.md` trước, chạy `npm run doctor`, chỉ mở file liên quan. Không nhập OTP/PIN, không gửi tin thật, không deploy. Nói "xong" thì phải kèm bằng chứng chạy thật (command + exit code).
+
+## Required boot sequence
 
 ```bash
 pwd
@@ -10,48 +12,48 @@ node --version
 npm run doctor
 ```
 
-Sau đó đọc đúng phần liên quan:
+Then read only what the task touches:
 
-1. `AGENTS.md` — luật bất biến.
-3. `README.md` — user flow.
-4. `internal/00-DESIGN.md` — kiến trúc.
-5. `internal/01-SPEC.md` — contract.
-6. `internal/02-PLAN.md` — thứ tự task.
-7. `internal/04-VERIFY.md` — evidence gate.
-8. `docs/` — hướng dẫn cụ thể.
+1. `AGENTS.md` — non-negotiable rules.
+2. `README.md` — user flow.
+3. `internal/00-DESIGN.md` — architecture.
+4. `internal/01-SPEC.md` — contract.
+5. `internal/02-PLAN.md` — task order.
+6. `internal/04-VERIFY.md` — evidence gate.
+7. `docs/` — specific guides.
 
-Không nạp toàn bộ source nếu task chỉ chạm một module.
+Do not load the whole source tree when the task touches one module.
 
-## Mục tiêu mặc định
+## Default goals
 
-- làm cho chủ dùng được dù không biết code;
-- ưu tiên wizard, docs rõ, command có output ổn định;
-- giữ Personal QR và Official OA tách biệt;
-- deterministic safety chạy trước AI/provider;
-- test offline trước live verification.
+- make it usable by an owner who does not write code;
+- prefer wizards, clear docs, and commands with stable output;
+- keep Personal QR and Official OA separate;
+- run deterministic safety before any AI/provider call;
+- test offline before live verification.
 
-## Quyền và cấm
+## Allowed and forbidden
 
-Agent được:
+An agent may:
 
-- đọc/sửa source trong repo;
-- tạo docs, tests, config example;
-- chạy npm test, public gates, self-check;
-- chạy local server foreground/background có health check;
-- tạo draft hoặc test fixture synthetic.
+- read and edit source in the repo;
+- write docs, tests and example config;
+- run `npm test`, the public gates, and self-check;
+- run the local server in foreground or background with a health check;
+- create drafts or synthetic test fixtures.
 
-Agent không được tự làm:
+An agent must never do these on its own:
 
-- nhập OTP/PIN, cookie, IMEI, refresh token hay API secret;
-- yêu cầu chủ dán secret vào chat;
-- gửi message thật, broadcast, spam, publish, deploy hoặc bật systemd;
-- đổi credential/quyền truy cập;
-- xoá `data/`, session, database hoặc file hàng loạt;
-- nói “đã chạy/live/publish” khi chưa có output thật.
+- enter an OTP/PIN, cookie, IMEI, refresh token or API secret;
+- ask the owner to paste a secret into chat;
+- send a real message, broadcast, spam, publish, deploy, or enable systemd;
+- change credentials or access rights;
+- delete `data/`, a session, the database, or files in bulk;
+- claim "ran / live / published" without real output.
 
-Nếu cần một quyết định đổi scope, tiền, quyền, public action hoặc khó rollback: hỏi chủ đúng một câu, kèm phương án em khuyên dùng.
+If a decision changes scope, money, permissions, public exposure, or is hard to roll back: ask the owner exactly one question, with a recommended option.
 
-## Flow task chuẩn
+## Standard task flows
 
 ### Install/setup
 
@@ -60,35 +62,35 @@ bash setup.sh --non-interactive
 npm run doctor
 ```
 
-Nếu thiếu Node, báo chính xác phiên bản đang có và hướng dẫn cài. Không tự cài phần mềm hệ thống nếu chưa được phép.
+If Node is missing, report the exact version present and give install instructions. Do not install system software without permission.
 
 ### Code change
 
 ```text
-đọc contract -> viết/sửa test -> chạy test -> sửa tối thiểu -> chạy test lại -> gates -> báo evidence
+read contract -> write/fix test -> run test -> smallest fix -> run test again -> gates -> report evidence
 ```
 
-Không thay đổi behavior safety chỉ để làm test xanh.
+Never weaken safety behaviour just to make a test pass.
 
 ### Server/background
 
-Nếu chạy background:
+If running in the background:
 
-1. start bằng process manager của môi trường;
-2. kiểm tra `GET /healthz`;
-3. kiểm tra `GET /api/health` sau auth boundary;
-4. chỉ tiếp tục khi output xác nhận server ready;
-5. khi xong thì dừng process nếu đó chỉ là test.
+1. start it with the environment's process manager;
+2. check `GET /healthz`;
+3. check `GET /api/health` behind the auth boundary;
+4. continue only when output confirms the server is ready;
+5. stop the process afterwards if it was only for a test.
 
 ### QR/login
 
-Dừng tại checkpoint giao diện. Hướng dẫn chủ tự quét QR và tự xác nhận trên điện thoại. Không đọc/hiển thị session material.
+Stop at the UI checkpoint. Walk the owner through scanning the QR and confirming on their phone themselves. Never read or display session material.
 
 ### OA
 
-OA webhook chỉ ingress/normalize/ack. Không nối AI/send vào webhook nếu chưa có approval, queue, policy và test outbound riêng.
+The OA webhook only ingests, normalises and acknowledges. Do not wire AI or send into the webhook without approval, a queue, a policy, and separate outbound tests.
 
-## Những command an toàn
+## Safe commands
 
 ```bash
 npm run doctor
@@ -101,47 +103,47 @@ npm run status
 npm run smoke
 ```
 
-`npm run smoke` không gửi thật mặc định. `BATTLE_SEND=true` là side effect riêng, không tự bật.
+`npm run smoke` does not send for real by default. `BATTLE_SEND=true` is a separate side effect and is never enabled automatically.
 
-## Format báo cáo bắt buộc
+## Required report format
 
-Mỗi lần trả kết quả:
+Every time you report back:
 
 ```text
-Kết luận: một câu
-Đã làm: file/command cụ thể
-Evidence: exit code, test count, endpoint hoặc artifact thật
-Ảnh hưởng: nếu có
-Còn lại: blocker/uncertainty thật
-Bước tiếp theo: một hành động rõ
+Conclusion:  one sentence
+Did:         specific files/commands
+Evidence:    exit code, test count, endpoint or real artifact
+Impact:      if any
+Remaining:   real blockers/uncertainty
+Next step:   one clear action
 ```
 
-Không đưa secret, raw message, cookie, QR, database hoặc real ID vào báo cáo.
+Never put a secret, raw message, cookie, QR, database or real ID into a report.
 
-## Nếu user chỉ nói “cài cho tôi”
+## If the user only says "install it for me"
 
-Agent chọn flow mặc định:
+Use the default flow:
 
-1. setup local;
-2. run tests/gates;
-3. start dashboard localhost;
-4. hướng dẫn QR thủ công;
-5. giữ `listen_only`;
-6. hỏi một câu duy nhất khi cần chọn destination;
-7. không gửi tin thật.
+1. local setup;
+2. run tests and gates;
+3. start the dashboard on localhost;
+4. walk them through the QR manually;
+5. stay on `listen_only`;
+6. ask exactly one question when a destination must be chosen;
+7. send no real messages.
 
-## Nếu user không biết code
+## If the user does not write code
 
-Không bắt user đọc stack trace. Dịch lỗi thành:
+Do not make them read a stack trace. Translate the error into:
 
-- chuyện gì chưa xong;
-- ảnh hưởng gì;
-- họ cần bấm/gõ gì;
-- agent đã kiểm chứng gì.
+- what did not finish;
+- what it affects;
+- what they need to click or type;
+- what you verified.
 
-## Release/public repo
+## Release / public repo
 
-Trước khi đề nghị public:
+Before proposing to make anything public:
 
 ```bash
 npm ci
@@ -153,4 +155,4 @@ npm run self-check
 git diff --check
 ```
 
-Nếu chưa có GitHub auth/remote/publish receipt, báo `publish blocked`, không giả định đã public.
+Without GitHub auth, a remote, and a publish receipt, report `publish blocked`. Never assume it is public.

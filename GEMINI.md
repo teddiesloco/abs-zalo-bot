@@ -3,8 +3,8 @@
 Read these first, in order:
 
 1. `AGENTS.md` — safety boundary: what you may and may not change
-3. `docs/agent-handoff.md` — full context packet
-4. `README.md`
+2. `docs/agent-handoff.md` — full context packet
+3. `README.md`
 
 Then run:
 

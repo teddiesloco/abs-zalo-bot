@@ -2,28 +2,28 @@
 
 ## File ownership
 
-| File | Có commit? | Ai dùng |
+| File | Committed? | Used for |
 |---|---:|---|
-| `.env.example` | Có | template tên biến |
-| `.env` | Không | giá trị local/secret |
-| `config.toml` | Có | default an toàn |
-| `config/bots.example.json` | Có | registry example |
-| `config/bots.json` | Không | registry local |
-| `data/` | Không | SQLite/session/QR/runtime |
+| `.env.example` | Yes | template of variable names |
+| `.env` | No | local/secret values |
+| `config.toml` | Yes | safe defaults |
+| `config/bots.example.json` | Yes | example registry |
+| `config/bots.json` | No | local registry |
+| `data/` | No | SQLite/session/QR/runtime |
 
 ## Personal defaults
 
-`config.toml` mặc định:
+`config.toml` defaults to:
 
 - `read_only_source=true`;
 - `listen_all_groups=false`;
 - `listen_dms=false`;
 - `auto_alert=false`;
 - `auto_reply_default=false`;
-- destination rỗng;
+- an empty destination;
 - bind localhost.
 
-Không đổi các default này chỉ để demo nhanh.
+Do not loosen these defaults just to speed up a demo.
 
 ## Important environment variables
 

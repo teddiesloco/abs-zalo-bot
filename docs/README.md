@@ -1,13 +1,13 @@
-# Tài liệu Zalo Bridge
+# Zalo Bridge documentation
 
-Bắt đầu ở đây:
+Start here:
 
-1. [Quickstart cho người không biết code](quickstart-non-coder.md)
-2. [Hướng dẫn cài đặt](install.md)
+1. [Non-coder quickstart](quickstart-non-coder.md)
+2. [Install guide](install.md)
 3. [Agent handoff](agent-handoff.md)
-4. [Prompt copy-paste cho agent](agent-prompts.md)
+4. [Copy-paste prompts for agents](agent-prompts.md)
 
-Tùy mục đích:
+Then, depending on what you need:
 
 - [Personal QR](personal-qr.md)
 - [Official OA](official-oa.md)
@@ -17,4 +17,11 @@ Tùy mục đích:
 - [Troubleshooting](troubleshooting.md)
 - [Release checklist](release-checklist.md)
 
-Nếu chủ chỉ cần chạy thử: dùng `bash setup.sh`, sau đó `npm start` và mở dashboard localhost. Không cần sửa code, không cần VPS/model/API key cho local Personal QR `listen_only`, và không cần nhập OTP/PIN cho agent. Đọc thêm [điều kiện runtime](install.md#điều-kiện-thật--cần-gì-không-cần-gì) trước khi đưa lên VPS.
+Just trying it out? Run `bash setup.sh`, then `npm start`, and open the dashboard on localhost.
+No code changes are needed. A local Personal QR bridge in `listen_only` needs no VPS, no model
+and no API key — and you never hand an OTP/PIN to an agent. Read
+[what you actually need](install.md#what-you-actually-need--and-what-you-do-not) before moving
+to a VPS.
+
+> **Tiếng Việt:** Chưa biết bắt đầu từ đâu thì đọc theo đúng thứ tự 1 → 4 ở trên. Chạy thử chỉ
+> cần `bash setup.sh` rồi `npm start`.
