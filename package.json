@@ -1,18 +1,40 @@
 {
   "name": "abs-zalo-bot",
   "version": "0.2.0",
-  "private": true,
   "type": "module",
   "description": "Zalo channel adapter for AI agents. Official OA and personal QR kept separate, fail-closed by default.",
   "author": "teddiesloco",
   "license": "MIT",
   "keywords": [
-    "agent-business-system",
-    "abs",
     "zalo",
-    "personal-qr",
-    "official-oa",
-    "mcp"
+    "zalo-bot",
+    "zca-js",
+    "chatbot",
+    "messaging",
+    "ai-agent",
+    "mcp",
+    "vietnam",
+    "official-account",
+    "personal-qr"
+  ],
+  "homepage": "https://github.com/teddiesloco/abs-zalo-bot#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teddiesloco/abs-zalo-bot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teddiesloco/abs-zalo-bot/issues"
+  },
+  "files": [
+    "src/",
+    "mcp/",
+    "scripts/",
+    "config/bots.example.json",
+    "config.toml",
+    ".env.example",
+    "README.md",
+    "SECURITY.md",
+    "LICENSE"
   ],
   "bin": {
     "zalo-personal-mcp": "./mcp/server.js"
