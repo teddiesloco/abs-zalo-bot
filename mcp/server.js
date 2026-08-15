@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Zalo Personal MCP — thin MCP facade over hermes-zalo-personal-bridge.
  *

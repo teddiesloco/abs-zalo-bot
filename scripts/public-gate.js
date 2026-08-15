@@ -103,7 +103,22 @@ function validateConfig() {
   }
 
   const issues = [];
-  if (pkg.private !== true) issues.push("package_must_remain_private");
+  // This package is intentionally publishable to npm. Instead of forbidding
+  // publish outright, enforce that a publish cannot happen half-configured:
+  // metadata must be complete and the tarball allowlist must be explicit,
+  // so runtime/secret paths can never be shipped by accident.
+  if (pkg.private === true) issues.push("package_marked_private_but_publish_metadata_expected");
+  if (!pkg.license) issues.push("package_license_required");
+  if (!pkg.repository?.url) issues.push("package_repository_url_required");
+  if (!Array.isArray(pkg.files) || pkg.files.length === 0) {
+    issues.push("package_files_allowlist_required");
+  } else {
+    const forbidden = ["data", "data/", ".env", "test", "test/", "config/bots.json"];
+    const leaked = pkg.files.filter((entry) =>
+      forbidden.some((bad) => entry === bad || entry.startsWith(`${bad}/`)),
+    );
+    if (leaked.length) issues.push(`package_files_must_not_ship_runtime_paths:${leaked.join(",")}`);
+  }
   if (config.read_only_source !== true) issues.push("example_must_enable_read_only_source");
   if (config.destination.group_id) issues.push("example_destination_id_must_be_empty");
   if (normalized.bots.some((bot) => bot.policy.mode !== "draft_first")) {
