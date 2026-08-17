@@ -1,48 +1,56 @@
-# Zalo Personal MCP — battle-ready notes
+# ABS Zalo MCP Architecture & Battle Notes
 
-## npm research: `n8n-nodes-zalo-user-by-noti`
-
-- Package: community n8n nodes for **personal Zalo** via **`zca-js`**
-- Features: QR login, 144 ops, realtime trigger
-- Same hard limits as us:
-  - unofficial API / ban risk
-  - **1 listener / account**
-  - cookie/session fragile
-- Useful as **protocol surface map**, not as runtime for Hermes
-- We do **not** depend on this package (n8n-only packaging). We share the same protocol lib idea: `zca-js`
-
-## Cold architecture (ours)
+## Architecture Overview
 
 ```
-Hermes Agent
-  └─ MCP stdio  mcp/server.js   (tools only)
-        └─ HTTP bridge :3871    (daemon + zca-js + SQLite + Policy Guard)
-              └─ Zalo personal account (READ_ONLY_SOURCE)
+   ┌────────────────────────────────────────────────────────┐
+   │         Hermes Agent / Claude Code / Codex CLI         │
+   └───────────────────────────┬────────────────────────────┘
+                               │ (MCP Protocol via stdio)
+   ┌───────────────────────────▼────────────────────────────┐
+   │                  mcp/server.js                         │
+   │           (ABS Zalo MCP Facade - 15+ Tools)            │
+   └───────────────────────────┬────────────────────────────┘
+                               │ (HTTP localhost:3871)
+   ┌───────────────────────────▼────────────────────────────┐
+   │                  ABS Zalo Daemon Server                │
+   │    ┌─────────────────┬─────────────────┬───────────┐   │
+   │    │  Policy Guard   │  Corpus SQLite  │  REST API │   │
+   │    │  (RBAC/Safety)  │  (Multi-Tenant) │  (Express)│   │
+   │    └─────────────────┴─────────────────┴───────────┘   │
+   └───────────────────────────┬────────────────────────────┘
+                               │
+                ┌──────────────┴──────────────┐
+                ▼                             ▼
+       Zalo Personal Engine              Zalo OA Adapter
+       (zca-js Core Daemon)             (Official Webhook)
 ```
 
-Why not put zca-js inside MCP process?
-- Hermes may spawn MCP per session → multi-listener collision
-- Bridge is the single long-lived owner of the Zalo session
+## Available MCP Tools
 
-## Battle commands
+All tools are prefixed with `abs_zalo_*` (with backward-compatible aliases for legacy scripts):
 
-```bash
-cd /path/to/abs-zalo-bot
-npm start
-curl -s -X POST :3871/api/accounts/default/connect -H 'content-type: application/json' -d '{}'
-npm test
-npm run smoke
-BATTLE_SEND=true npm run smoke   # sends ONE report to the configured destination
+- `abs_zalo_status`: Query bridge and connection health.
+- `abs_zalo_list_groups` & `abs_zalo_list_all_groups`: List configured and live joined groups.
+- `abs_zalo_recent_messages` & `abs_zalo_corpus_summary`: Fetch stored messages and aggregated telemetry.
+- `abs_zalo_kick_member`: Kick members from groups (Admin/Owner).
+- `abs_zalo_transfer_owner`: Transfer group ownership.
+- `abs_zalo_add_deputy` & `abs_zalo_remove_deputy`: Manage group admins.
+- `abs_zalo_invite_member`: Invite users into groups.
+- `abs_zalo_create_poll` & `abs_zalo_lock_poll`: Interactive polling capabilities.
+- `abs_zalo_react_message` & `abs_zalo_undo_message`: Reactions and message retraction.
+- `abs_zalo_get_user_info`, `abs_zalo_get_group_info`, `abs_zalo_find_user`, `abs_zalo_list_friends`: Deep user and group intelligence.
+
+## Hermes MCP Registration
+
+Add to `~/.hermes/config.yaml`:
+
+```yaml
+mcpServers:
+  abs-zalo:
+    command: node
+    args:
+      - /path/to/abs-zalo-bot/mcp/server.js
+    env:
+      ZALO_BRIDGE_URL: http://127.0.0.1:3871
 ```
-
-## Hermes MCP
-
-Config key: `zalo-personal` in `~/.hermes/config.yaml`
-Tools appear as `mcp_zalo_personal_*` after **new session**.
-
-## Safety (shared SIM)
-
-- READ_ONLY_SOURCE on
-- outbound only to the configured destination
-- no DM / mention / source replies
-- history REST often 404 → rely on listener corpus

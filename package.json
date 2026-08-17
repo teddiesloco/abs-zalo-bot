@@ -1,8 +1,8 @@
 {
   "name": "abs-zalo-bot",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
-  "description": "Zalo channel adapter for AI agents. Official OA and personal QR kept separate, fail-closed by default.",
+  "description": "ABS Zalo Engine for AI Agents & Hermes. Personal QR & Official OA adapters, group administration, polls, reactions, fail-closed policy guard.",
   "author": "teddiesloco",
   "license": "MIT",
   "keywords": [

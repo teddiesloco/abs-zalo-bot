@@ -232,6 +232,90 @@ export class AccountRuntime extends EventEmitter {
     return this.api.sendMessage(String(text), String(targetId), 1);
   }
 
+  // ── Group Management & Advanced Ops (ABS Specialized Methods) ──
+
+  async removeUserFromGroup(groupId, memberId) {
+    if (!this.api?.removeUserFromGroup) throw new Error("not_connected");
+    const mIds = Array.isArray(memberId) ? memberId : [memberId];
+    return this.api.removeUserFromGroup(mIds, String(groupId));
+  }
+
+  async changeGroupOwner(groupId, newOwnerId) {
+    if (!this.api?.changeGroupOwner) throw new Error("not_connected");
+    return this.api.changeGroupOwner(String(newOwnerId), String(groupId));
+  }
+
+  async addGroupDeputy(groupId, memberId) {
+    if (!this.api?.addGroupDeputy) throw new Error("not_connected");
+    const mIds = Array.isArray(memberId) ? memberId : [memberId];
+    return this.api.addGroupDeputy(mIds, String(groupId));
+  }
+
+  async removeGroupDeputy(groupId, memberId) {
+    if (!this.api?.removeGroupDeputy) throw new Error("not_connected");
+    const mIds = Array.isArray(memberId) ? memberId : [memberId];
+    return this.api.removeGroupDeputy(mIds, String(groupId));
+  }
+
+  async addUserToGroup(groupId, memberId) {
+    if (!this.api?.addUserToGroup) throw new Error("not_connected");
+    const mIds = Array.isArray(memberId) ? memberId : [memberId];
+    return this.api.addUserToGroup(mIds, String(groupId));
+  }
+
+  async createPoll(groupId, { question, options, expiredTime = 0, allowMultiChoices = false, allowAddNewOption = false, isAnonymous = false, hideVotePreview = false }) {
+    if (!this.api?.createPoll) throw new Error("not_connected");
+    return this.api.createPoll({
+      question,
+      options,
+      expiredTime,
+      allowMultiChoices,
+      allowAddNewOption,
+      isAnonymous,
+      hideVotePreview,
+    }, String(groupId));
+  }
+
+  async lockPoll(pollId) {
+    if (!this.api?.lockPoll) throw new Error("not_connected");
+    return this.api.lockPoll(String(pollId));
+  }
+
+  async addReaction(icon, dest) {
+    if (!this.api?.addReaction) throw new Error("not_connected");
+    return this.api.addReaction(icon, dest);
+  }
+
+  async undoMessage(dest, threadId, threadType = 1) {
+    if (!this.api?.undo) throw new Error("not_connected");
+    return this.api.undo(dest, String(threadId), threadType);
+  }
+
+  async getGroupInfo(groupId) {
+    if (!this.api?.getGroupInfo) throw new Error("not_connected");
+    return this.api.getGroupInfo(String(groupId));
+  }
+
+  async getUserInfo(userId) {
+    if (!this.api?.getUserInfo) throw new Error("not_connected");
+    return this.api.getUserInfo(String(userId));
+  }
+
+  async findUser(phoneNumber) {
+    if (!this.api?.findUser) throw new Error("not_connected");
+    return this.api.findUser(String(phoneNumber));
+  }
+
+  async getAllFriends() {
+    if (!this.api?.getAllFriends) throw new Error("not_connected");
+    return this.api.getAllFriends();
+  }
+
+  async getAllGroups() {
+    if (!this.api?.getAllGroups) throw new Error("not_connected");
+    return this.api.getAllGroups();
+  }
+
   async pause() {
     try {
       this.api?.listener?.stop?.();
