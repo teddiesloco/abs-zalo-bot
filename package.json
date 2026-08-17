@@ -1,21 +1,29 @@
 {
   "name": "abs-zalo-bot",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
-  "description": "ABS Zalo Engine for AI Agents & Hermes. Personal QR & Official OA adapters, group administration, polls, reactions, fail-closed policy guard.",
+  "description": "ABS Zalo Agent Engine — Free, Transparent & Autonomous Zalo AI Agent Engine for Hermes, Claude Code & Codex. Dual Personal QR + Official OA, Group Administration, Lead Intel, Polls, Reactions & MCP Server.",
   "author": "teddiesloco",
   "license": "MIT",
   "keywords": [
     "zalo",
+    "zalo-agent",
     "zalo-bot",
+    "ai-agent",
+    "ai-agents",
+    "hermes-agent",
+    "claude-code",
+    "codex",
+    "mcp",
+    "model-context-protocol",
     "zca-js",
     "chatbot",
-    "messaging",
-    "ai-agent",
-    "mcp",
+    "lead-generation",
     "vietnam",
     "official-account",
-    "personal-qr"
+    "personal-qr",
+    "autonomous-agent",
+    "open-source"
   ],
   "homepage": "https://github.com/teddiesloco/abs-zalo-bot#readme",
   "repository": {
@@ -37,7 +45,7 @@
     "LICENSE"
   ],
   "bin": {
-    "zalo-personal-mcp": "./mcp/server.js"
+    "zalo-personal-mcp": "mcp/server.js"
   },
   "scripts": {
     "start": "node src/cli.js serve",
