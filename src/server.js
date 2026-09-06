@@ -690,6 +690,142 @@ export function createApp({
     }
   });
 
+  app.post("/api/groups/:groupId/name", async (req, res) => {
+    try {
+      const accountId = req.body?.account_id || config.default_account_id;
+      const name = req.body?.name || req.body?.group_name;
+      if (!name) return res.status(400).json({ ok: false, error: "name_required" });
+      const runtime = hub.getRuntime(accountId);
+      if (!runtime.api) return res.status(400).json({ ok: false, error: "not_connected" });
+      const result = await runtime.renameGroup(req.params.groupId, name);
+      res.json({ ok: true, result });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err?.message || err) });
+    }
+  });
+
+  app.post("/api/groups/:groupId/avatar", async (req, res) => {
+    try {
+      const accountId = req.body?.account_id || config.default_account_id;
+      const avatarSource = req.body?.avatar_source || req.body?.avatar_url;
+      if (!avatarSource) return res.status(400).json({ ok: false, error: "avatar_source_required" });
+      const runtime = hub.getRuntime(accountId);
+      if (!runtime.api) return res.status(400).json({ ok: false, error: "not_connected" });
+      const result = await runtime.changeGroupAvatar(req.params.groupId, avatarSource);
+      res.json({ ok: true, result });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err?.message || err) });
+    }
+  });
+
+  app.post("/api/groups/:groupId/notes", async (req, res) => {
+    try {
+      const accountId = req.body?.account_id || config.default_account_id;
+      const content = req.body?.content || req.body?.text;
+      if (!content) return res.status(400).json({ ok: false, error: "content_required" });
+      const pin = req.body?.pin !== false;
+      const runtime = hub.getRuntime(accountId);
+      if (!runtime.api) return res.status(400).json({ ok: false, error: "not_connected" });
+      const result = await runtime.createGroupNote(req.params.groupId, content, pin);
+      res.json({ ok: true, result });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err?.message || err) });
+    }
+  });
+
+  app.get("/api/groups/:groupId/pending-members", async (req, res) => {
+    try {
+      const accountId = req.query?.account_id || config.default_account_id;
+      const runtime = hub.getRuntime(accountId);
+      if (!runtime.api) return res.status(400).json({ ok: false, error: "not_connected" });
+      const result = await runtime.getPendingGroupMembers(req.params.groupId);
+      res.json({ ok: true, result });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err?.message || err) });
+    }
+  });
+
+  app.post("/api/groups/:groupId/pending-members/review", async (req, res) => {
+    try {
+      const accountId = req.body?.account_id || config.default_account_id;
+      const memberId = req.body?.user_id || req.body?.member_id;
+      if (!memberId) return res.status(400).json({ ok: false, error: "member_id_required" });
+      const approve = req.body?.approve !== false;
+      const runtime = hub.getRuntime(accountId);
+      if (!runtime.api) return res.status(400).json({ ok: false, error: "not_connected" });
+      const result = await runtime.reviewPendingMember(req.params.groupId, memberId, approve);
+      res.json({ ok: true, result });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err?.message || err) });
+    }
+  });
+
+  app.post("/api/groups/:groupId/blocked/add", async (req, res) => {
+    try {
+      const accountId = req.body?.account_id || config.default_account_id;
+      const memberId = req.body?.user_id || req.body?.member_id;
+      if (!memberId) return res.status(400).json({ ok: false, error: "member_id_required" });
+      const runtime = hub.getRuntime(accountId);
+      if (!runtime.api) return res.status(400).json({ ok: false, error: "not_connected" });
+      const result = await runtime.addGroupBlockedMember(req.params.groupId, memberId);
+      res.json({ ok: true, result });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err?.message || err) });
+    }
+  });
+
+  app.post("/api/groups/:groupId/blocked/remove", async (req, res) => {
+    try {
+      const accountId = req.body?.account_id || config.default_account_id;
+      const memberId = req.body?.user_id || req.body?.member_id;
+      if (!memberId) return res.status(400).json({ ok: false, error: "member_id_required" });
+      const runtime = hub.getRuntime(accountId);
+      if (!runtime.api) return res.status(400).json({ ok: false, error: "not_connected" });
+      const result = await runtime.removeGroupBlockedMember(req.params.groupId, memberId);
+      res.json({ ok: true, result });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err?.message || err) });
+    }
+  });
+
+  app.get("/api/groups/:groupId/link", async (req, res) => {
+    try {
+      const accountId = req.query?.account_id || config.default_account_id;
+      const runtime = hub.getRuntime(accountId);
+      if (!runtime.api) return res.status(400).json({ ok: false, error: "not_connected" });
+      const result = await runtime.getGroupLink(req.params.groupId);
+      res.json({ ok: true, result });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err?.message || err) });
+    }
+  });
+
+  app.post("/api/groups/:groupId/link", async (req, res) => {
+    try {
+      const accountId = req.body?.account_id || config.default_account_id;
+      const enable = req.body?.enable !== false;
+      const runtime = hub.getRuntime(accountId);
+      if (!runtime.api) return res.status(400).json({ ok: false, error: "not_connected" });
+      const result = await runtime.setGroupLink(req.params.groupId, enable);
+      res.json({ ok: true, result });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err?.message || err) });
+    }
+  });
+
+  app.post("/api/groups/:groupId/settings", async (req, res) => {
+    try {
+      const accountId = req.body?.account_id || config.default_account_id;
+      const settings = req.body?.settings || {};
+      const runtime = hub.getRuntime(accountId);
+      if (!runtime.api) return res.status(400).json({ ok: false, error: "not_connected" });
+      const result = await runtime.updateGroupSettings(req.params.groupId, settings);
+      res.json({ ok: true, result });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err?.message || err) });
+    }
+  });
+
   app.post("/api/groups/:groupId/polls", async (req, res) => {
     try {
       const accountId = req.body?.account_id || config.default_account_id;

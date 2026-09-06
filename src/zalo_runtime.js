@@ -4,10 +4,13 @@ import path from "node:path";
 import { EventEmitter } from "node:events";
 import { normalizeInboundMessage, utcNow } from "./schema.js";
 import { stageHermesMedia } from "./hermes_media.js";
+import { buildZaloStyledMessage, splitIntoSafeZaloChunks } from "./zalo_styler.js";
 
 const PERSONAL_ACTIONS = new Set([
   "send_message", "send_sticker", "send_voice", "send_video", "forward_message", "typing",
   "create_group", "rename_group", "leave_group", "disperse_group", "update_group_settings",
+  "create_note", "change_avatar", "block_member", "unblock_member", "review_pending",
+  "group_link_enable", "group_link_disable", "send_card", "send_bank_card",
   "friend_accept", "friend_reject", "friend_request", "friend_request_undo", "friend_remove",
   "user_block", "user_unblock"
 ]);
@@ -352,6 +355,60 @@ export class AccountRuntime extends EventEmitter {
     return this.api.getAllGroups();
   }
 
+  async renameGroup(groupId, name) {
+    if (!this.api?.changeGroupName) throw new Error("not_connected");
+    return this.api.changeGroupName(String(name).slice(0, 100), String(groupId));
+  }
+
+  async changeGroupAvatar(groupId, avatarSource) {
+    if (!this.api?.changeGroupAvatar) throw new Error("not_connected");
+    return this.api.changeGroupAvatar(avatarSource, String(groupId));
+  }
+
+  async createGroupNote(groupId, content, pin = true) {
+    if (!this.api?.createNote) throw new Error("not_connected");
+    return this.api.createNote(String(groupId), String(content), Boolean(pin));
+  }
+
+  async getPendingGroupMembers(groupId) {
+    if (!this.api?.getPendingGroupMembers) throw new Error("not_connected");
+    return this.api.getPendingGroupMembers(String(groupId));
+  }
+
+  async reviewPendingMember(groupId, memberId, approve = true) {
+    if (!this.api?.reviewPendingMemberRequest) throw new Error("not_connected");
+    return this.api.reviewPendingMemberRequest(memberId, String(groupId), Boolean(approve));
+  }
+
+  async addGroupBlockedMember(groupId, memberId) {
+    if (!this.api?.addGroupBlockedMember) throw new Error("not_connected");
+    return this.api.addGroupBlockedMember(memberId, String(groupId));
+  }
+
+  async removeGroupBlockedMember(groupId, memberId) {
+    if (!this.api?.removeGroupBlockedMember) throw new Error("not_connected");
+    return this.api.removeGroupBlockedMember(memberId, String(groupId));
+  }
+
+  async getGroupLink(groupId) {
+    if (!this.api?.getGroupLinkDetail) throw new Error("not_connected");
+    return this.api.getGroupLinkDetail(String(groupId));
+  }
+
+  async setGroupLink(groupId, enable = true) {
+    if (enable) {
+      if (!this.api?.enableGroupLink) throw new Error("not_connected");
+      return this.api.enableGroupLink(String(groupId));
+    }
+    if (!this.api?.disableGroupLink) throw new Error("not_connected");
+    return this.api.disableGroupLink(String(groupId));
+  }
+
+  async updateGroupSettings(groupId, settings = {}) {
+    if (!this.api?.updateGroupSettings) throw new Error("not_connected");
+    return this.api.updateGroupSettings(settings, String(groupId));
+  }
+
   async performPersonalAction(action, payload = {}) {
     const name = String(action || "").trim();
     if (!PERSONAL_ACTIONS.has(name)) throw new Error("unsupported_personal_action");
@@ -361,11 +418,19 @@ export class AccountRuntime extends EventEmitter {
     switch (name) {
       case "send_message": {
         if (typeof api.sendMessage !== "function") break;
-        const message = { msg: String(payload.text || "").slice(0, 4000) };
+        let textContent = String(payload.text || "");
+        let styles = Array.isArray(payload.styles) ? payload.styles : undefined;
+        if (!styles && (payload.styled || payload.parse_markdown || /[*_~#\[]/.test(textContent))) {
+          const parsed = buildZaloStyledMessage(textContent);
+          textContent = parsed.msg;
+          styles = parsed.styles;
+        }
+        const message = { msg: textContent.slice(0, 4000) };
         if (!message.msg && !payload.attachment_path) throw new Error("text_or_attachment_required");
         if (payload.quote) message.quote = payload.quote;
         if (Array.isArray(payload.mentions)) message.mentions = payload.mentions.slice(0, 50);
         if (payload.attachment_path) message.attachments = controlledAttachment(payload.attachment_path);
+        if (styles) message.styles = styles;
         return api.sendMessage(message, target(), threadType(payload.thread_type));
       }
       case "send_sticker":
@@ -398,6 +463,33 @@ export class AccountRuntime extends EventEmitter {
       case "update_group_settings":
         if (typeof api.updateGroupSettings !== "function") break;
         return api.updateGroupSettings(payload.settings && typeof payload.settings === "object" ? payload.settings : {}, required(payload.group_id, "group_id"));
+      case "create_note":
+        if (typeof api.createNote !== "function") break;
+        return api.createNote(required(payload.group_id, "group_id"), required(payload.content, "content"), Boolean(payload.pin !== false));
+      case "change_avatar":
+        if (typeof api.changeGroupAvatar !== "function") break;
+        return api.changeGroupAvatar(required(payload.avatar_source || payload.avatar_url, "avatar_source"), required(payload.group_id, "group_id"));
+      case "block_member":
+        if (typeof api.addGroupBlockedMember !== "function") break;
+        return api.addGroupBlockedMember(required(payload.member_id, "member_id"), required(payload.group_id, "group_id"));
+      case "unblock_member":
+        if (typeof api.removeGroupBlockedMember !== "function") break;
+        return api.removeGroupBlockedMember(required(payload.member_id, "member_id"), required(payload.group_id, "group_id"));
+      case "review_pending":
+        if (typeof api.reviewPendingMemberRequest !== "function") break;
+        return api.reviewPendingMemberRequest(required(payload.member_id, "member_id"), required(payload.group_id, "group_id"), Boolean(payload.approve !== false));
+      case "group_link_enable":
+        if (typeof api.enableGroupLink !== "function") break;
+        return api.enableGroupLink(required(payload.group_id, "group_id"));
+      case "group_link_disable":
+        if (typeof api.disableGroupLink !== "function") break;
+        return api.disableGroupLink(required(payload.group_id, "group_id"));
+      case "send_card":
+        if (typeof api.sendCard !== "function") break;
+        return api.sendCard(payload.card_info || {}, target(), threadType(payload.thread_type));
+      case "send_bank_card":
+        if (typeof api.sendBankCard !== "function") break;
+        return api.sendBankCard(payload.bank_info || {}, target(), threadType(payload.thread_type));
       case "friend_accept": if (typeof api.acceptFriendRequest === "function") return api.acceptFriendRequest(required(payload.user_id, "user_id")); break;
       case "friend_reject": if (typeof api.rejectFriendRequest === "function") return api.rejectFriendRequest(required(payload.user_id, "user_id")); break;
       case "friend_request": if (typeof api.sendFriendRequest === "function") return api.sendFriendRequest(String(payload.message || "").slice(0, 300), required(payload.user_id, "user_id")); break;
