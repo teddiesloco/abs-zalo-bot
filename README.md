@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/abs-zalo-bot.svg?color=blue)](https://www.npmjs.com/package/abs-zalo-bot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Automated Tests](https://img.shields.io/badge/Tests-77%2F77%20Passing-brightgreen.svg)](test/)
+[![Automated Tests](https://img.shields.io/badge/Tests-85%2F85%20Passing-brightgreen.svg)](test/)
 [![AI Agent Ready](https://img.shields.io/badge/AI%20Agent-Hermes%20%7C%20Claude%20Code%20%7C%20Codex-purple.svg)](mcp/)
 [![Model Context Protocol](https://img.shields.io/badge/MCP-Standard%20v1.3.0-blueviolet.svg)](mcp/)
 
@@ -46,7 +46,17 @@ Attach `npx abs-zalo-bot` or `node mcp/server.js` to your Agent configuration:
 | | `abs_zalo_list_groups` | List allowlisted source & destination groups |
 | | `abs_zalo_recent_messages` | Read captured message streams with full metadata |
 | | `abs_zalo_corpus_summary` | Get aggregated inventory of users, groups, and logs |
-| **Group Administration** | `abs_zalo_kick_member` | Remove a member from a group (Admin/Owner required) |
+| **Group Administration** | `abs_zalo_rename_group` | Rename group name (Admin/Leader required) |
+| | `abs_zalo_change_group_avatar` | Change group avatar image from URL or file |
+| | `abs_zalo_create_group_note` | Create and pin announcement/note at the top |
+| | `abs_zalo_get_pending_members` | List members waiting for approval to join |
+| | `abs_zalo_review_pending_member` | Approve or reject pending member requests |
+| | `abs_zalo_block_group_member` | Block a member permanently from the group |
+| | `abs_zalo_unblock_group_member` | Unblock a previously blocked member |
+| | `abs_zalo_get_group_link` | Get public group invite link (URL) |
+| | `abs_zalo_set_group_link` | Enable or disable public group join link |
+| | `abs_zalo_update_group_settings` | Configure group permissions (lock chat, pin, etc.) |
+| | `abs_zalo_kick_member` | Remove a member from a group (Admin/Owner required) |
 | | `abs_zalo_transfer_owner` | Transfer group ownership (Owner required) |
 | | `abs_zalo_add_deputy` | Promote a member to Group Deputy / Admin |
 | | `abs_zalo_remove_deputy` | Demote a Group Deputy back to regular member |
@@ -152,13 +162,80 @@ Start MCP with `ABS_ZALO_TOOL_PACK=reader` (default). Move deliberately to `oper
 
 Set `HERMES_ZALO_MEDIA_INGEST=true` only on the private bridge host to stage inbound Zalo attachments for an authenticated Hermes platform plugin. The bridge returns opaque attachment references and serves the staged local file through its authenticated `/v1/hermes/media/:eventId/:attachmentId` endpoint; it never passes provider CDN URLs or Zalo session data to Hermes. Images, documents, audio/voice and video are bounded to 25 MB for images/files and 100 MB for audio/video.
 
-### Hermes Zalo Gateway (0.5)
+### Hermes Zalo Gateway (0.5+)
 
 `hermes-plugin/platforms/zalo` is an installable Hermes gateway adapter. It polls the authenticated local bridge and converts only normalized, approved Zalo events into Hermes `MessageEvent`s; it never handles QR, cookies, sessions or arbitrary `zca-js` calls.
 
 Before it receives a single event, set all of `HERMES_ZALO_GATEWAY_ENABLED=true`, a non-empty `HERMES_ZALO_ALLOWED_THREADS`, and a non-empty `HERMES_ZALO_ALLOWED_USERS`. Sender references are privacy-safe hashes returned by the bridge—not a display name. Groups default to `HERMES_ZALO_GROUP_MODE=mention`. The plugin can connect with `HERMES_ZALO_ALLOW_AUTOREPLY=false`, but reply/typing remain rejected until that separate opt-in is set to `true`.
 
 For profile-aware quality, select `gateway_skill = "your-owner-authored-hermes-skill"` in each `[[agent_profiles]]` record. Hermes then auto-loads that skill for that source/profile, while the bridge still owns policy, confirmation, audit and outbound bounds. Detailed installation: [`hermes-plugin/README.md`](hermes-plugin/README.md).
+
+---
+
+## 🎨 Zalo Rich Text & Auto Styling Engine (Built-in)
+
+`abs-zalo-bot` automatically compiles Markdown syntax and brand color tags into native Zalo TextStyle formatting:
+
+- `# Heading 1`: Large Header (`f_18`) + Bold (`b`) + Ruby Red (`c_db342e`).
+- `## Heading 2`: Header Bold (`b`) + Emerald Green (`c_15a85f`).
+- `### Heading 3`: Header Bold (`b`) + Amber Orange (`c_f27806`).
+- `**bold**`: Zalo Bold (`b`).
+- `*italic*`: Zalo Italic (`i`).
+- `__underline__`: Zalo Underline (`u`).
+- `~~strikethrough~~`: Zalo StrikeThrough (`s`).
+- Color tags: `[RED]...[/RED]` (Ruby Red), `[GREEN]...[/GREEN]` (Emerald Green), `[ORANGE]...[/ORANGE]` (Amber Orange), `[YELLOW]...[/YELLOW]` (Royal Gold) — supports Vietnamese equivalents `[ĐỎ]`, `[XANH]`, `[CAM]`, `[VÀNG]`.
+- **Safe Bubble Chunker (`splitIntoSafeZaloChunks`)**: Automatically breaks long outputs into sequential bubbles <= 650 chars, permanently eliminating Zalo API Error 118 ("Content too long").
+
+---
+
+## 🧠 Hermes Agent Starter Kit (`hermes-plugin/starter-kit/`)
+
+Ready-to-use "Digital Brain" template for Hermes Agent:
+
+1. **`SOUL.md`**: Conversational, warm, Vietnamese executive assistant voice (zero corporate slop, short mobile-optimized sentences, authentic tone).
+2. **`AGENT.md`**: Deterministic AI architecture, safety rules, fail-closed boundaries, mention-only in groups.
+3. **`skills/zalo-customer-care`**: 1-on-1 customer service, empathetic problem diagnosis, and natural lead qualification.
+4. **`skills/zalo-community-admin`**: 24/7 group moderation (new member welcome, FAQ answering, rule pinning, spam defense).
+
+To enable, run 1 command:
+```bash
+cp -R hermes-plugin/starter-kit/skills/* ~/.hermes/skills/
+cat hermes-plugin/starter-kit/SOUL.md >> ~/.hermes/SOUL.md
+```
+
+---
+
+## 🔄 Seamless Zero-Downtime Upgrade (For Existing Users)
+
+If you already installed `abs-zalo-bot` (v0.4.0 or v0.5.0), upgrading to **v0.6.0** takes 5 seconds with **ZERO data loss and NO QR re-scan**:
+
+- **If installed via NPM:**
+  ```bash
+  npm install -g abs-zalo-bot@latest
+  ```
+- **If cloned via Git:**
+  ```bash
+  git pull origin main
+  npm install
+  ```
+- **If running via Docker:**
+  ```bash
+  docker compose pull && docker compose up -d
+  ```
+
+> *Your active login sessions (`data/sessions/`), databases (`data/bridge.sqlite3`), and `.env` settings are 100% preserved. The bot seamlessly reconnects without requesting a new QR scan.*
+
+---
+
+## ⭐ Support & Community Nudge
+
+If ABS Zalo Bot helps your operations or business, please consider starring the repository:
+
+```bash
+# Star via GitHub CLI
+gh repo star teddiesloco/abs-zalo-bot
+```
+Or click Star directly at: **[https://github.com/teddiesloco/abs-zalo-bot](https://github.com/teddiesloco/abs-zalo-bot)** ⭐
 
 ---
 
