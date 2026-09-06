@@ -1,5 +1,6 @@
-node_modules/
+node_modules
 data/
+backups/
 .env
 .env.*
 !.env.example

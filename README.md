@@ -68,27 +68,79 @@ Attach `npx abs-zalo-bot` or `node mcp/server.js` to your Agent configuration:
 
 ## 🚀 Quickstart
 
-### 1. Global Installation (via npm)
+### Prerequisites
+- **Node.js 22.5.0+** (LTS recommended) on any OS: Windows, macOS, Linux.
+- *Zero C++ compilation tools required* — utilizes pure JavaScript with Node.js built-in `node:sqlite`.
+
+---
+
+### Option A: Windows (PC / Laptop — 1-Click Setup)
+
+1. **Clone repository**:
+   ```cmd
+   git clone https://github.com/teddiesloco/abs-zalo-bot.git
+   cd abs-zalo-bot
+   ```
+2. **Setup (1-Click)**:
+   - Double-click **`setup.bat`** (or in PowerShell run `.\setup.ps1`).
+   - It will automatically verify Node.js, install packages, and initialize local configuration.
+3. **Start Bot**:
+   - Double-click **`start.bat`** (or run `npm start`).
+   - It will launch the bot and automatically open `http://localhost:3871/connect` in your browser.
+4. **Login**: Scan the QR code on the browser screen with your Zalo app on your phone.
+
+> **💡 Run 24/7 in Background on Windows (without keeping CMD open):**
+> ```cmd
+> npm install -g pm2
+> pm2 start src/cli.js --name abs-zalo-bot
+> pm2 startup
+> pm2 save
+> ```
+
+---
+
+### Option B: macOS & Linux (Local Desktop / Laptop)
+
+1. **Clone & Setup**:
+   ```bash
+   git clone https://github.com/teddiesloco/abs-zalo-bot.git
+   cd abs-zalo-bot
+   ./install.sh
+   ```
+2. **Start the Bot**:
+   ```bash
+   npm start
+   ```
+3. **Login**:
+   Open `http://127.0.0.1:3871/connect` in Safari/Chrome to scan the QR code.
+
+---
+
+### Option C: Docker (Windows Docker Desktop / Mac / Linux / NAS)
+
+1. **Start with Docker Compose**:
+   ```bash
+   docker compose up -d
+   ```
+2. **Login**:
+   Open `http://localhost:3871/connect` in your browser to scan the QR code.
+3. **Check Logs**:
+   ```bash
+   docker compose logs -f
+   ```
+
+---
+
+### Option D: Production Linux VPS (systemd)
+
+For headless servers and 24/7 background operation:
 ```bash
-npm install -g abs-zalo-bot
+./setup.sh
+sudo cp abs-zalo-bot.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now abs-zalo-bot
 ```
-
-### 2. Run with Node / NPM
-```bash
-# Clone repository
-git clone https://github.com/teddiesloco/abs-zalo-bot.git
-cd abs-zalo-bot
-
-# Install & Run tests
-npm ci
-npm test
-
-# Start the daemon
-npm start
-```
-
-### 3. Open Control Dashboard
-Open `http://127.0.0.1:3871` in your browser to scan QR code, configure group policies, and manage your AI Agent bridge.
+*(On headless VPS, view QR via SSH tunnel: `ssh -N -L 13871:127.0.0.1:3871 user@your-vps` then open `http://127.0.0.1:13871/connect`).*
 
 ### Hermes Profile Pack
 

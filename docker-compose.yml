@@ -1,0 +1,15 @@
+services:
+  abs-zalo-bot:
+    build: .
+    container_name: abs-zalo-bot
+    restart: unless-stopped
+    ports:
+      - "3871:3871"
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=3871
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./.env:/app/.env

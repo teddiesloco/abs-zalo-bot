@@ -6,8 +6,8 @@ import crypto from "node:crypto";
 
 const MAX_IMAGE_OR_FILE = 25 * 1024 * 1024;
 const MAX_AUDIO_OR_VIDEO = 100 * 1024 * 1024;
-const ALLOWED_HOST = /(^|\.)(zalo\.me|zaloapp\.com|zadn\.vn|zdn\.vn|zalo\.cloud|zaloapi\.com)$/i;
-const VIDEO_STAL_HOST = /^video-stal-\d+\.dlmd\.me$/i;
+const ALLOWED_HOST = /(^|\.)(zalo\.me|zaloapp\.com|zadn\.vn|zdn\.vn|zalo\.cloud|zaloapi\.com|dlmd\.me)$/i;
+const VIDEO_STAL_HOST = /^(video|dfile|file|photo)-stal-\d+\.dlmd\.me$/i;
 
 function safeName(value, fallback) {
   const name = path.basename(String(value || "").replace(/[^\w. -]/g, "_")).slice(0, 120);
@@ -59,7 +59,7 @@ export async function stageHermesMedia(event, { dataDir, fetchImpl = globalThis.
     try {
       const url = assertZaloAttachmentUrl(candidate.url);
       const limit = ["audio", "video"].includes(candidate.kind) ? MAX_AUDIO_OR_VIDEO : MAX_IMAGE_OR_FILE;
-      const response = await fetchImpl(url, { redirect: "error", signal: AbortSignal.timeout(30_000) });
+      const response = await fetchImpl(url, { redirect: "follow", signal: AbortSignal.timeout(45_000) });
       if (!response.ok || !response.body) throw new Error("attachment_download_failed");
       const declared = Number(response.headers.get("content-length") || 0);
       if (declared > limit) throw new Error("attachment_too_large");
