@@ -41,6 +41,13 @@
     "config/bots.example.json",
     "config.toml",
     ".env.example",
+    "setup.bat",
+    "start.bat",
+    "setup.ps1",
+    "install.sh",
+    "setup.sh",
+    "Dockerfile",
+    "docker-compose.yml",
     "README.md",
     "SECURITY.md",
     "LICENSE"
