@@ -159,6 +159,11 @@ export function parseMarkdownStyles(input) {
 
   for (let line of lines) {
     let hType = 0;
+    // Strip markdown horizontal rules (---, ***, ___) to avoid ugly wide gap in Zalo mobile
+    if (/^\s*[-*_]{3,}\s*$/.test(line)) {
+      line = "";
+    }
+
     if (line.startsWith("# ")) {
       hType = 1;
       line = line.slice(2);
@@ -225,11 +230,11 @@ export function parseMarkdownStyles(input) {
     }
   }
 
-  // 2. Color tags (Vietnamese and English)
-  replaceTag(/\[(?:RED|ĐỎ)\]([\s\S]*?)\[\/(?:RED|ĐỎ)\]/i, [ZALO_STYLES.Bold, ZALO_STYLES.RubyRed]);
+  // 2. Color tags (Vietnamese and English, accented & unaccented)
+  replaceTag(/\[(?:RED|ĐỎ|DO)\]([\s\S]*?)\[\/(?:RED|ĐỎ|DO)\]/i, [ZALO_STYLES.Bold, ZALO_STYLES.RubyRed]);
   replaceTag(/\[(?:GREEN|XANH)\]([\s\S]*?)\[\/(?:GREEN|XANH)\]/i, [ZALO_STYLES.Bold, ZALO_STYLES.EmeraldGreen]);
   replaceTag(/\[(?:ORANGE|CAM)\]([\s\S]*?)\[\/(?:ORANGE|CAM)\]/i, [ZALO_STYLES.Bold, ZALO_STYLES.AmberOrange]);
-  replaceTag(/\[(?:YELLOW|VÀNG)\]([\s\S]*?)\[\/(?:YELLOW|VÀNG)\]/i, [ZALO_STYLES.Bold, ZALO_STYLES.RoyalGold]);
+  replaceTag(/\[(?:YELLOW|VÀNG|VANG)\]([\s\S]*?)\[\/(?:YELLOW|VÀNG|VANG)\]/i, [ZALO_STYLES.Bold, ZALO_STYLES.RoyalGold]);
 
   // 3. Inline markdown tags
   replaceTag(/\*\*([\s\S]*?)\*\*/g, [ZALO_STYLES.Bold]);
