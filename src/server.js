@@ -883,7 +883,8 @@ export function createApp({
       if (!dest || !thread_id) return res.status(400).json({ ok: false, error: "dest_and_thread_id_required" });
       const runtime = hub.getRuntime(accountId);
       if (!runtime.api) return res.status(400).json({ ok: false, error: "not_connected" });
-      const result = await runtime.undoMessage(dest, thread_id, thread_type || 1);
+      const resolvedType = thread_type !== undefined ? Number(thread_type) : 0;
+      const result = await runtime.undoMessage(dest, thread_id, resolvedType);
       res.json({ ok: true, result });
     } catch (err) {
       res.status(500).json({ ok: false, error: String(err?.message || err) });

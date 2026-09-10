@@ -64,7 +64,10 @@ export async function stageHermesMedia(event, { dataDir, fetchImpl = globalThis.
       const declared = Number(response.headers.get("content-length") || 0);
       if (declared > limit) throw new Error("attachment_too_large");
       const id = crypto.createHash("sha256").update(`${event.event_id}|${candidate.url}`).digest("hex").slice(0, 24);
-      const relative = path.join("media", event.event_id, `${id}-${safeName(candidate.name, "attachment")}`);
+      const ext = path.extname(candidate.name) || (candidate.kind === "image" ? ".jpg" : candidate.kind === "audio" ? ".m4a" : candidate.kind === "video" ? ".mp4" : "");
+      const baseCandidateName = safeName(candidate.name, "attachment");
+      const candidateNameWithExt = ext && !baseCandidateName.toLowerCase().endsWith(ext) ? `${baseCandidateName}${ext}` : baseCandidateName;
+      const relative = path.join("media", event.event_id, `${id}-${candidateNameWithExt}`);
       const full = path.resolve(dataDir, relative);
       if (!full.startsWith(`${path.resolve(dataDir, "media")}${path.sep}`)) throw new Error("attachment_path_invalid");
       fs.mkdirSync(path.dirname(full), { recursive: true, mode: 0o700 });
@@ -84,7 +87,7 @@ export async function stageHermesMedia(event, { dataDir, fetchImpl = globalThis.
         });
       }
       if (!bytes) throw new Error("attachment_empty");
-      refs.push({ id, path: relative, name: safeName(candidate.name, "attachment"), kind: candidate.kind, mime: response.headers.get("content-type")?.split(";")[0] || extensionMime(candidate.name, candidate.kind), size: bytes });
+      refs.push({ id, path: relative, name: candidateNameWithExt, kind: candidate.kind, mime: response.headers.get("content-type")?.split(";")[0] || extensionMime(candidateNameWithExt, candidate.kind), size: bytes });
     } catch (err) {
       refs.push({ id: crypto.randomUUID(), name: safeName(candidate.name, "attachment"), kind: candidate.kind || "file", status: "unavailable", error: String(err?.message || err).slice(0, 80) });
     }

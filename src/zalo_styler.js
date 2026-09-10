@@ -18,6 +18,70 @@ export const ZALO_STYLES = {
   Indent: "ind_$",
 };
 
+export const MAX_ZALO_STYLE_JSON_LENGTH = 250;
+export const MAX_ZALO_UTF16_LENGTH = 2800;
+
+/**
+ * Measure string length in UTF-16 code units (Zalo's internal character counter).
+ */
+export function measureUtf16Length(str) {
+  return typeof str === "string" ? str.length : 0;
+}
+
+/**
+ * Score style priority so essential formatting (Headings, Colors) survives JSON budget cuts.
+ */
+function getStylePriority(st) {
+  switch (st) {
+    case ZALO_STYLES.HeaderLarge:
+    case ZALO_STYLES.HeaderSmall:
+      return 100;
+    case ZALO_STYLES.RubyRed:
+    case ZALO_STYLES.EmeraldGreen:
+    case ZALO_STYLES.AmberOrange:
+    case ZALO_STYLES.RoyalGold:
+      return 80;
+    case ZALO_STYLES.Bold:
+      return 60;
+    case ZALO_STYLES.Underline:
+    case ZALO_STYLES.StrikeThrough:
+      return 40;
+    case ZALO_STYLES.Italic:
+      return 20;
+    default:
+      return 10;
+  }
+}
+
+/**
+ * Cap Zalo styles to prevent exceeding Zalo's JSON style payload ceiling (~256 bytes).
+ * When over budget, lower-priority styles (italic, bold) are pruned first
+ * while preserving high-priority headings and colors.
+ */
+export function capStyles(styles, maxJsonLength = MAX_ZALO_STYLE_JSON_LENGTH) {
+  if (!Array.isArray(styles) || styles.length === 0) return [];
+  if (JSON.stringify(styles).length <= maxJsonLength) return styles;
+
+  // Clone and annotate with original index and priority
+  const items = styles.map((s, idx) => ({
+    style: s,
+    priority: getStylePriority(s.st),
+    idx,
+  }));
+
+  // Sort ascending by priority so lowest priority items are removed first
+  items.sort((a, b) => a.priority - b.priority);
+
+  const retained = new Set(styles);
+  while (items.length > 0 && JSON.stringify(Array.from(retained)).length > maxJsonLength) {
+    const lowest = items.shift();
+    retained.delete(lowest.style);
+  }
+
+  // Restore original ordering by start position
+  return styles.filter((s) => retained.has(s));
+}
+
 /**
  * Split text into chunks safe for Zalo's message length limits.
  * Default max is 650 chars to avoid error 118 (content too long).
@@ -178,11 +242,13 @@ export function parseMarkdownStyles(input) {
 
 /**
  * Format message into ready-to-send Zalo payload with styles.
+ * Automatically enforces max JSON budget (~250 bytes) for style payload.
  */
-export function buildZaloStyledMessage(text) {
+export function buildZaloStyledMessage(text, { maxStylesJsonLength = MAX_ZALO_STYLE_JSON_LENGTH } = {}) {
   const { text: cleanText, styles } = parseMarkdownStyles(text);
+  const cappedStyles = capStyles(styles, maxStylesJsonLength);
   return {
     msg: cleanText,
-    styles: styles.length > 0 ? styles : undefined,
+    styles: cappedStyles.length > 0 ? cappedStyles : undefined,
   };
 }

@@ -1,6 +1,6 @@
 {
   "name": "abs-zalo-bot",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "type": "module",
   "description": "ABS Zalo Agent Engine — Free, Transparent & Autonomous Zalo AI Agent Engine for Hermes, Claude Code & Codex. Dual Personal QR + Official OA, Group Administration, Lead Intel, Polls, Reactions & MCP Server.",
   "author": "teddiesloco",

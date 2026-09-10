@@ -325,7 +325,7 @@ export class AccountRuntime extends EventEmitter {
     return this.api.addReaction(icon, dest);
   }
 
-  async undoMessage(dest, threadId, threadType = 1) {
+  async undoMessage(dest, threadId, threadType = 0) {
     if (!this.api?.undo) throw new Error("not_connected");
     return this.api.undo(dest, String(threadId), threadType);
   }

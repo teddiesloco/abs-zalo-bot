@@ -13,6 +13,7 @@ import {
   parseMarkdownStyles,
   splitIntoSafeZaloChunks,
   buildZaloStyledMessage,
+  capStyles,
   ZALO_STYLES,
 } from "../src/zalo_styler.js";
 
@@ -71,6 +72,28 @@ test("Zalo Rich Text & Auto Styling Engine", async (t) => {
     assert.equal(msg.msg, "Thông báo khẩn cấp!");
     assert.ok(Array.isArray(msg.styles));
     assert.equal(msg.styles[0].st, "b");
+  });
+
+  await t.test("capStyles strictly enforces JSON byte budget while preserving priority", () => {
+    // Generate many styles to intentionally overflow 250 characters JSON
+    const overflowInput = [
+      "# Tiêu đề lớn ưu tiên 1",
+      "Đây là [RED]màu đỏ ưu tiên 2[/RED] và [GREEN]xanh ưu tiên 2[/GREEN].",
+      "Hàng loạt từ **đậm 1**, **đậm 2**, **đậm 3**, **đậm 4**, **đậm 5**, **đậm 6**, **đậm 7**, **đậm 8**, **đậm 9**, **đậm 10**.",
+      "Và các từ *nghiêng 1*, *nghiêng 2*, *nghiêng 3*, *nghiêng 4*, *nghiêng 5*.",
+    ].join("\n");
+
+    const fullStyles = parseMarkdownStyles(overflowInput).styles;
+    const initialJsonLen = JSON.stringify(fullStyles).length;
+    assert.ok(initialJsonLen > 300, `Initial styles JSON length (${initialJsonLen}) should exceed 300`);
+
+    const capped = capStyles(fullStyles, 250);
+    const cappedJsonLen = JSON.stringify(capped).length;
+    assert.ok(cappedJsonLen <= 250, `Capped styles JSON length (${cappedJsonLen}) must be <= 250`);
+
+    // Ensure high priority (HeaderLarge / Colors) survived pruning over low priority (Italic)
+    assert.ok(capped.some((s) => s.st === ZALO_STYLES.HeaderLarge), "HeaderLarge should survive budget pruning");
+    assert.ok(capped.some((s) => s.st === ZALO_STYLES.RubyRed), "Color tags should survive budget pruning");
   });
 });
 

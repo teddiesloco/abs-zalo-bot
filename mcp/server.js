@@ -12,12 +12,54 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import crypto from "node:crypto";
 import {
   capabilityPackSummary,
   canUseToolPack,
   normalizeToolPack,
   requiredToolPackForBridgeRequest,
 } from "../src/mcp_capabilities.js";
+
+const PENDING_CONFIRMATION_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const pendingConfirmations = new Map(); // code -> { action, targetKey, expiresAt }
+
+function cleanupExpiredConfirmations() {
+  const now = Date.now();
+  for (const [code, entry] of pendingConfirmations.entries()) {
+    if (now > entry.expiresAt) {
+      pendingConfirmations.delete(code);
+    }
+  }
+}
+
+function requestConfirmation(action, targetKey) {
+  cleanupExpiredConfirmations();
+  const code = crypto.randomBytes(3).toString("hex").toUpperCase();
+  pendingConfirmations.set(code, {
+    action,
+    targetKey,
+    expiresAt: Date.now() + PENDING_CONFIRMATION_TTL_MS,
+  });
+  return {
+    status: "confirmation_required",
+    requires_confirmation: true,
+    action,
+    confirmation_code: code,
+    expires_in_seconds: 300,
+    warning: `⚠️ HÀNH ĐỘNG NHẠY CẢM: Thao tác này có tính phá hủy/ảnh hưởng lớn. Để thực thi, vui lòng gọi lại công cụ kèm tham số confirmation_code="${code}" trong vòng 5 phút (hoặc yêu cầu xác nhận trong chat).`,
+  };
+}
+
+function verifyConfirmation(code, action, targetKey) {
+  cleanupExpiredConfirmations();
+  if (!code || typeof code !== "string") return false;
+  const key = code.trim().toUpperCase();
+  const entry = pendingConfirmations.get(key);
+  if (!entry) return false;
+  if (entry.action !== action || entry.targetKey !== targetKey) return false;
+  pendingConfirmations.delete(key);
+  return true;
+}
 
 const BRIDGE_URL = (process.env.ZALO_BRIDGE_URL || "http://127.0.0.1:3871").replace(/\/$/, "");
 const TOKEN = process.env.DASHBOARD_TOKEN || process.env.ZALO_BRIDGE_TOKEN || "";
@@ -270,13 +312,18 @@ server.tool(
 
 server.tool(
   "abs_zalo_kick_member",
-  "Remove a user/member from a group (Requires Group Admin or Owner rights).",
+  "Remove a user/member from a group (Requires Group Admin or Owner rights). Note: Destructive action requires 2-step confirmation.",
   {
     group_id: z.string().describe("Target Zalo group id"),
     user_id: z.string().describe("User ID to kick from group"),
     account_id: z.string().optional(),
+    confirmation_code: z.string().optional().describe("6-char OTP confirmation code. Call without code first to generate OTP."),
   },
-  async ({ group_id, user_id, account_id }) => {
+  async ({ group_id, user_id, account_id, confirmation_code }) => {
+    const targetKey = `${group_id}:${user_id}`;
+    if (!verifyConfirmation(confirmation_code, "kick_member", targetKey)) {
+      return ok(requestConfirmation("kick_member", targetKey));
+    }
     try {
       const data = await bridge(`/api/groups/${encodeURIComponent(group_id)}/kick`, {
         method: "POST",
@@ -291,13 +338,18 @@ server.tool(
 
 server.tool(
   "abs_zalo_transfer_owner",
-  "Transfer group ownership to another member (Requires Group Owner rights).",
+  "Transfer group ownership to another member (Requires Group Owner rights). Note: Destructive action requires 2-step confirmation.",
   {
     group_id: z.string().describe("Target Zalo group id"),
     new_owner_id: z.string().describe("User ID of the new group owner"),
     account_id: z.string().optional(),
+    confirmation_code: z.string().optional().describe("6-char OTP confirmation code. Call without code first to generate OTP."),
   },
-  async ({ group_id, new_owner_id, account_id }) => {
+  async ({ group_id, new_owner_id, account_id, confirmation_code }) => {
+    const targetKey = `${group_id}:${new_owner_id}`;
+    if (!verifyConfirmation(confirmation_code, "transfer_owner", targetKey)) {
+      return ok(requestConfirmation("transfer_owner", targetKey));
+    }
     try {
       const data = await bridge(`/api/groups/${encodeURIComponent(group_id)}/transfer-owner`, {
         method: "POST",
@@ -454,14 +506,19 @@ server.tool(
 
 server.tool(
   "abs_zalo_undo_message",
-  "Undo / recall a sent message on Zalo.",
+  "Undo / recall a sent message on Zalo. Note: Irreversible action requires 2-step confirmation.",
   {
     dest: z.string().describe("Destination / message context"),
     thread_id: z.string().describe("Thread / group ID"),
     thread_type: z.number().optional().default(1).describe("1 for group, 0 for direct"),
     account_id: z.string().optional(),
+    confirmation_code: z.string().optional().describe("6-char OTP confirmation code. Call without code first to generate OTP."),
   },
-  async ({ dest, thread_id, thread_type = 1, account_id }) => {
+  async ({ dest, thread_id, thread_type = 1, account_id, confirmation_code }) => {
+    const targetKey = `${thread_id}:${dest}`;
+    if (!verifyConfirmation(confirmation_code, "undo_message", targetKey)) {
+      return ok(requestConfirmation("undo_message", targetKey));
+    }
     try {
       const data = await bridge("/api/messages/undo", {
         method: "POST",
@@ -671,13 +728,18 @@ server.tool(
 
 server.tool(
   "abs_zalo_block_group_member",
-  "Block a member permanently from joining or chatting in the group.",
+  "Block a member permanently from joining or chatting in the group. Note: Destructive action requires 2-step confirmation.",
   {
     group_id: z.string().describe("Zalo group ID"),
     member_id: z.string().describe("Zalo user ID to block"),
     account_id: z.string().optional(),
+    confirmation_code: z.string().optional().describe("6-char OTP confirmation code. Call without code first to generate OTP."),
   },
-  async ({ group_id, member_id, account_id }) => {
+  async ({ group_id, member_id, account_id, confirmation_code }) => {
+    const targetKey = `${group_id}:${member_id}`;
+    if (!verifyConfirmation(confirmation_code, "block_group_member", targetKey)) {
+      return ok(requestConfirmation("block_group_member", targetKey));
+    }
     try {
       const data = await bridge(`/api/groups/${encodeURIComponent(group_id)}/blocked/add`, {
         method: "POST",
