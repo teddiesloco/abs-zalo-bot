@@ -43,6 +43,9 @@ function controlledAttachment(filePath) {
 }
 
 export class AccountRuntime extends EventEmitter {
+  // Auto-restart constants (exponential back-off, same as 2anh-zalo-bot v1.1.1)
+  static RESTART_DELAYS_MS = [5_000, 15_000, 30_000, 60_000, 120_000, 300_000];
+
   constructor({ accountId, store, policy, onEvent, clientFactory = null }) {
     super();
     this.accountId = String(accountId);
@@ -55,6 +58,9 @@ export class AccountRuntime extends EventEmitter {
     this.loginPromise = null;
     this.lastMessageAt = null;
     this.listenerWired = false;
+    this._listenerStopped = false;
+    this._restartAttempt = 0;
+    this._restartTimer = null;
   }
 
   status() {
@@ -248,7 +254,44 @@ export class AccountRuntime extends EventEmitter {
         /* ignore closed store */
       }
     });
-    this.api.listener.start({ retryOnClose: true });
+    // "closed" = zca-js hit retry limit and gave up entirely. Bot is still "connected"
+    // but deaf. Schedule a listener restart with exponential back-off so the process
+    // self-heals without operator intervention (mirrors 2anh-zalo-bot v1.1.1 fix).
+    this.api.listener.on("closed", (code, reason) => {
+      try {
+        this.store.setHealth(
+          `listener_closed_${this.accountId}`,
+          `code=${code} reason=${String(reason || "").slice(0, 100)} at=${utcNow()}`,
+        );
+        this.emit("listener_down", { reason: `closed:${code}`, at: utcNow() });
+      } catch { /* ignore */ }
+      if (!this._listenerStopped) this.#scheduleListenerRestart();
+    });
+    this.#startListener();
+  }
+
+  #scheduleListenerRestart() {
+    if (this._listenerStopped || this._restartTimer) return;
+    const delays = AccountRuntime.RESTART_DELAYS_MS;
+    const delay = delays[Math.min(this._restartAttempt, delays.length - 1)];
+    this._restartAttempt += 1;
+    console.warn(
+      `[zalo_runtime] 🔁 Listener đóng hoàn toàn — thử mở lại sau ${Math.round(delay / 1000)}s (lần ${this._restartAttempt})`,
+    );
+    this._restartTimer = setTimeout(() => {
+      this._restartTimer = null;
+      this.#startListener();
+    }, delay);
+  }
+
+  #startListener() {
+    if (this._listenerStopped || !this.api?.listener) return;
+    try {
+      this.api.listener.start({ retryOnClose: true });
+    } catch (err) {
+      console.error("[zalo_runtime] không start được listener:", err?.message || err);
+      this.#scheduleListenerRestart();
+    }
   }
 
   async sendText(targetId, text, threadType = 1) {
@@ -333,6 +376,29 @@ export class AccountRuntime extends EventEmitter {
   async getGroupInfo(groupId) {
     if (!this.api?.getGroupInfo) throw new Error("not_connected");
     return this.api.getGroupInfo(String(groupId));
+  }
+
+  // getGroupMembersInfo requires a list of member UIDs, NOT a group ID.
+  // Call getGroupInfo first to obtain the member list, then pass member UIDs here.
+  // (mirrors 2anh-zalo-bot v1.2.0 group_members fix)
+  async getGroupMembers(groupId, { limit = 50 } = {}) {
+    if (!this.api?.getGroupInfo || !this.api?.getGroupMembersInfo) throw new Error("not_connected");
+    const info = await this.api.getGroupInfo(String(groupId));
+    const gid = String(groupId);
+    const memberIds = (info?.gridInfoMap?.[gid]?.memVerList || [])
+      .map((entry) => String(entry).replace(/_\d+$/, ""))
+      .filter(Boolean);
+    const lookup = memberIds.slice(0, Math.min(limit, 100));
+    const profiles = lookup.length
+      ? ((await this.api.getGroupMembersInfo(lookup))?.profiles || {})
+      : {};
+    return {
+      total: memberIds.length,
+      members: lookup.map((id) => ({
+        id,
+        displayName: profiles[id]?.displayName || profiles[id]?.zaloName || "",
+      })),
+    };
   }
 
   async getUserInfo(userId) {
@@ -431,7 +497,20 @@ export class AccountRuntime extends EventEmitter {
         if (Array.isArray(payload.mentions)) message.mentions = payload.mentions.slice(0, 50);
         if (payload.attachment_path) message.attachments = controlledAttachment(payload.attachment_path);
         if (styles) message.styles = styles;
-        return api.sendMessage(message, target(), threadType(payload.thread_type));
+        // Plaintext fallback: if Zalo rejects a styled message with a numeric error
+        // code (server-side rejection), retry as plain text to avoid silently losing
+        // the message. Network errors (no code) are NOT retried to avoid duplicates.
+        // (mirrors 2anh-zalo-bot v1.1.1 hermes-bridge.js fix)
+        try {
+          return await api.sendMessage(message, target(), threadType(payload.thread_type));
+        } catch (err) {
+          if (!message.styles || !/^-?\d+$/.test(String(err?.code ?? ""))) throw err;
+          console.warn(
+            `[zalo_runtime] Zalo từ chối tin có style (mã ${err.code}) — gửi lại dạng chữ thường`,
+          );
+          const { styles: _dropped, ...plain } = message;
+          return api.sendMessage(plain, target(), threadType(payload.thread_type));
+        }
       }
       case "send_sticker":
         if (typeof api.sendSticker !== "function") break;
@@ -503,6 +582,9 @@ export class AccountRuntime extends EventEmitter {
   }
 
   async pause() {
+    this._listenerStopped = true;
+    clearTimeout(this._restartTimer);
+    this._restartTimer = null;
     try {
       this.api?.listener?.stop?.();
     } catch {

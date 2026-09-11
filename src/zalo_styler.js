@@ -20,6 +20,20 @@ export const ZALO_STYLES = {
 
 export const MAX_ZALO_STYLE_JSON_LENGTH = 250;
 export const MAX_ZALO_UTF16_LENGTH = 2800;
+export const MAX_ZALO_PAYLOAD_BYTES = 3000;
+
+/**
+ * Measure payload volume in UTF-8 bytes (text + style JSON length).
+ * Zalo web servers reject messages where text bytes + style JSON length >= 3,448 bytes.
+ * Keeping under 3,000 bytes ensures 100% safe delivery for Vietnamese text & emoji.
+ */
+export function measurePayloadBytes(msg, styles) {
+  const text = typeof msg === "string" ? msg : String(msg?.msg || msg?.text || "");
+  const textBytes = Buffer.byteLength(text, "utf8");
+  const styleList = styles || msg?.styles;
+  const styleBytes = Array.isArray(styleList) && styleList.length > 0 ? JSON.stringify(styleList).length : 0;
+  return textBytes + styleBytes;
+}
 
 /**
  * Measure string length in UTF-16 code units (Zalo's internal character counter).
