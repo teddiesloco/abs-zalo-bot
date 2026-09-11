@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/abs-zalo-bot.svg?color=blue)](https://www.npmjs.com/package/abs-zalo-bot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Automated Tests](https://img.shields.io/badge/Tests-85%2F85%20Passing-brightgreen.svg)](test/)
+[![Automated Tests](https://img.shields.io/badge/Tests-91%2F91%20Passing-brightgreen.svg)](test/)
 [![AI Agent Ready](https://img.shields.io/badge/AI%20Agent-Hermes%20%7C%20Claude%20Code%20%7C%20Codex-purple.svg)](mcp/)
 [![Model Context Protocol](https://img.shields.io/badge/MCP-Standard%20v1.3.0-blueviolet.svg)](mcp/)
 
@@ -205,9 +205,22 @@ cat hermes-plugin/starter-kit/SOUL.md >> ~/.hermes/SOUL.md
 
 ---
 
+## 🆕 What's New in v0.7.1
+
+> **Robustness release** — self-healing listener, safe styled messages, fixed group member API, expanded payload safety.
+
+| Feature | Detail |
+| :--- | :--- |
+| **Listener Auto-Restart** | Catches `closed` event from `zca-js` when the listener shuts down permanently (bot goes "deaf" after network drop). Schedules automatic reconnect with exponential back-off: `5s → 15s → 30s → 60s → 120s → 300s`. No operator restart needed. |
+| **Plaintext Fallback for Styled Messages** | When Zalo server rejects a styled (formatted) message with a numeric error code, the bot automatically strips formatting and re-sends as plain text — so the content is never silently lost. Network errors (no error code) are NOT retried to prevent duplicate messages. |
+| **Payload Byte Budget** | `MAX_ZALO_PAYLOAD_BYTES = 3000` + `measurePayloadBytes()` in `zalo_styler.js` cap total UTF-8 bytes of text + style JSON, matching real-world Zalo rejection threshold of ~3,448 bytes. |
+| **Fix `getGroupMembers` API Order** | New `AccountRuntime.getGroupMembers(groupId)` calls `getGroupInfo` first to obtain member UID list, then passes UIDs to `getGroupMembersInfo` — eliminating "Lỗi không xác định" that occurred when a group ID was passed where member UIDs were expected. |
+
+---
+
 ## 🔄 Seamless Zero-Downtime Upgrade (For Existing Users)
 
-If you already installed `abs-zalo-bot` (v0.4.0 or v0.5.0), upgrading to **v0.6.0** takes 5 seconds with **ZERO data loss and NO QR re-scan**:
+If you already installed `abs-zalo-bot`, upgrading to **v0.7.1** takes 5 seconds with **ZERO data loss and NO QR re-scan**:
 
 - **If installed via NPM:**
   ```bash
