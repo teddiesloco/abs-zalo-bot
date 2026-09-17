@@ -2,6 +2,8 @@
 // Converts Markdown and color tags into native Zalo TextStyle formatting
 // Ensures message chunks stay within safe bubble limits (<= 650 chars).
 
+import { latexToUnicode } from "./zalo_math.js";
+
 export const ZALO_STYLES = {
   Bold: "b",
   Italic: "i",
@@ -162,7 +164,7 @@ export function splitIntoSafeZaloChunks(text, maxCharsPerChunk = 650) {
  *   [YELLOW]...[/YELLOW] or [VÀNG]...[/VÀNG] -> Bold + Royal Gold
  */
 export function parseMarkdownStyles(input) {
-  let text = String(input || "");
+  let text = latexToUnicode(String(input || ""));
   const styles = [];
 
   // 1. Process headings line by line
