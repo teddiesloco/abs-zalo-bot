@@ -47,7 +47,7 @@ function controlledAttachment(filePath) {
 }
 
 export class AccountRuntime extends EventEmitter {
-  // Auto-restart constants (exponential back-off, same as 2anh-zalo-bot v1.1.1)
+  // Auto-restart constants (exponential back-off)
   static RESTART_DELAYS_MS = [5_000, 15_000, 30_000, 60_000, 120_000, 300_000];
 
   constructor({ accountId, store, policy, onEvent, clientFactory = null }) {
@@ -260,7 +260,7 @@ export class AccountRuntime extends EventEmitter {
     });
     // "closed" = zca-js hit retry limit and gave up entirely. Bot is still "connected"
     // but deaf. Schedule a listener restart with exponential back-off so the process
-    // self-heals without operator intervention (mirrors 2anh-zalo-bot v1.1.1 fix).
+    // self-heals without operator intervention.
     this.api.listener.on("closed", (code, reason) => {
       try {
         this.store.setHealth(
@@ -384,7 +384,6 @@ export class AccountRuntime extends EventEmitter {
 
   // getGroupMembersInfo requires a list of member UIDs, NOT a group ID.
   // Call getGroupInfo first to obtain the member list, then pass member UIDs here.
-  // (mirrors 2anh-zalo-bot v1.2.0 group_members fix)
   async getGroupMembers(groupId, { limit = 50 } = {}) {
     if (!this.api?.getGroupInfo || !this.api?.getGroupMembersInfo) throw new Error("not_connected");
     const info = await this.api.getGroupInfo(String(groupId));
@@ -552,7 +551,6 @@ export class AccountRuntime extends EventEmitter {
         // Plaintext fallback: if Zalo rejects a styled message with a numeric error
         // code (server-side rejection), retry as plain text to avoid silently losing
         // the message. Network errors (no code) are NOT retried to avoid duplicates.
-        // (mirrors 2anh-zalo-bot v1.1.1 hermes-bridge.js fix)
         try {
           return await api.sendMessage(message, target(), threadType(payload.thread_type));
         } catch (err) {

@@ -1,6 +1,5 @@
 /**
  * ABS Zalo Math & LaTeX to Unicode Converter
- * Ported from upstream 2anh-zalo-bot v1.10.10
  *
  * Converts LaTeX formulas in agent messages to native Unicode symbols:
  * "$Ca^{2+}$" -> "Ca²⁺", "\rightarrow" -> "→", "\alpha" -> "α", "$x^2$" -> "x²", "H_2O" -> "H₂O"

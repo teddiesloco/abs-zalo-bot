@@ -1,8 +1,15 @@
 # Changelog
 
+## v0.9.1 (2026-09-17)
+
+### ABS Enterprise Features
+
+- **LaTeX to Unicode Math Engine (`src/zalo_math.js`):** Tự động chuyển đổi công thức toán, phương trình hoá học và ký tự Hy Lạp thành Unicode superscript/subscript tự nhiên trước khi gửi Zalo.
+- **Auto Unicode Injection in Styler:** Tích hợp trực tiếp vào `parseMarkdownStyles`, làm sạch mọi biểu thức `$Ca^{2+}$`, `H_2O`, `x^2`, `\rightarrow` trước khi định dạng và chunk tin nhắn.
+
 ## v0.9.0 (2026-09-15)
 
-### Ported & Enhanced from 2anh-zalo-bot v1.9.2–v1.10.3
+### Voice & Audio Engine
 
 - **Voice Note Transcoding for iPhone & Zalo PC:** Đóng gói âm thanh qua ffmpeg sang container M4A (AAC mono 44.1kHz, 64k) kèm cờ `+faststart` (đưa atom `moov` lên đầu stream) và tự động nối đuôi `.m4a` vào link CDN Zalo (`withAudioExtension`), giải quyết triệt để lỗi không nghe được hoặc undefined duration trên iOS (AVPlayer) và Desktop (Chromium).
 - **Voice Dedup Guard (10 phút):** Cơ chế `createVoiceDedupGuard` ghi nhớ chữ ký `(chatId, filePath, size, mtime)` trong 10 phút, ngăn chặn việc bot gửi lặp 2 lần tin thoại khi gateway tự động nhặt tag media TTS.
@@ -12,7 +19,7 @@
 
 ## v0.7.1 (2026-09-11)
 
-### Ported from 2anh-zalo-bot v1.1.1–v1.3.0
+### Resilience & Byte Budget
 
 - **Listener Auto-Restart:** Bắt sự kiện `closed` của `zca-js` khi listener đóng hoàn toàn (bot "điếc" ngầm), tự mở lại theo nhịp lũy tiến `[5s, 15s, 30s, 60s, 120s, 300s]` không cần khởi động thủ công.
 - **Plaintext Fallback:** `performPersonalAction("send_message")` tự động lột style và gửi lại chữ thường khi Zalo từ chối tin nhắn có định dạng (mã lỗi số âm = server-side reject). Lỗi mạng không gửi lại tránh trùng tin.
