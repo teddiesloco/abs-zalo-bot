@@ -110,7 +110,7 @@ export function createHermesBridge({ config, store, hub }) {
     async sendMessage({ threadId, text, replyTo = null, threadType = null } = {}) {
       const thread = String(threadId || "").trim();
       const body = String(text || "").trim();
-      if (!thread || !body || body.length > 4000) throw new Error("invalid_message");
+      if (!thread || !body) throw new Error("invalid_message");
       if (!gatewaySettings().enabled || !gatewaySettings().autoReply) throw new Error("gateway_autoreply_disabled");
       if (!allowedThreads().has(thread)) throw new Error("thread_not_allowlisted");
       const runtime = hub.getRuntime(accountId());
@@ -120,6 +120,7 @@ export function createHermesBridge({ config, store, hub }) {
         thread_id: thread,
         thread_type: resolvedThreadType,
         text: body,
+        parse_markdown: true,
         quote: replyTo ? { msgId: String(replyTo) } : undefined,
       });
       store.audit({ accountId: accountId(), actorId: "hermes-zalo-plugin", action: "hermes_bridge_send", detail: `thread=${sha256(thread).slice(0, 12)}` });

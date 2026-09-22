@@ -184,7 +184,7 @@ For profile-aware quality, select `gateway_skill = "your-owner-authored-hermes-s
 - `__underline__`: Zalo Underline (`u`).
 - `~~strikethrough~~`: Zalo StrikeThrough (`s`).
 - Color tags: `[RED]...[/RED]` (Ruby Red), `[GREEN]...[/GREEN]` (Emerald Green), `[ORANGE]...[/ORANGE]` (Amber Orange), `[YELLOW]...[/YELLOW]` (Royal Gold) — supports Vietnamese equivalents `[ĐỎ]`, `[XANH]`, `[CAM]`, `[VÀNG]`.
-- **Safe Bubble Chunker (`splitIntoSafeZaloChunks`)**: Automatically breaks long outputs into sequential bubbles <= 650 chars, permanently eliminating Zalo API Error 118 ("Content too long").
+- **Safe Styled Chunker (`formatAndChunkZaloMarkdown`)**: Splits long output without dropping characters or breaking UTF-16 surrogate pairs. Every bubble is capped at 2,000 UTF-16 code units, 40 styles, and 3,000 encoded bytes; styles are clipped and rebased per bubble.
 
 ---
 
@@ -227,22 +227,22 @@ cat hermes-plugin/starter-kit/SOUL.md >> ~/.hermes/SOUL.md
 
 ---
 
-## 🆕 What's New in v0.7.1
+## 🆕 What's New in v0.9.2
 
-> **Robustness release** — self-healing listener, safe styled messages, fixed group member API, expanded payload safety.
+> **Rich-message reliability release** — complete long replies, quoted context, and broader media normalization.
 
 | Feature | Detail |
 | :--- | :--- |
-| **Listener Auto-Restart** | Catches `closed` event from `zca-js` when the listener shuts down permanently (bot goes "deaf" after network drop). Schedules automatic reconnect with exponential back-off: `5s → 15s → 30s → 60s → 120s → 300s`. No operator restart needed. |
-| **Plaintext Fallback for Styled Messages** | When Zalo server rejects a styled (formatted) message with a numeric error code, the bot automatically strips formatting and re-sends as plain text — so the content is never silently lost. Network errors (no error code) are NOT retried to prevent duplicate messages. |
-| **Payload Byte Budget** | `MAX_ZALO_PAYLOAD_BYTES = 3000` + `measurePayloadBytes()` in `zalo_styler.js` cap total UTF-8 bytes of text + style JSON, matching real-world Zalo rejection threshold of ~3,448 bytes. |
-| **Fix `getGroupMembers` API Order** | New `AccountRuntime.getGroupMembers(groupId)` calls `getGroupInfo` first to obtain member UID list, then passes UIDs to `getGroupMembersInfo` — eliminating "Lỗi không xác định" that occurred when a group ID was passed where member UIDs were expected. |
+| **Lossless Styled Chunking** | Long Markdown replies are rendered once, split on readable boundaries, then sent sequentially. Each bubble stays within 2,000 UTF-16 code units, 40 styles, and 3,000 encoded bytes. Styles are clipped and rebased instead of discarded. |
+| **Safe Delivery Semantics** | A quote appears only on the first bubble; an attachment only on the last. Plain-text retry occurs only after a numeric provider rejection. Ambiguous network failures are not retried, preventing likely duplicate sends. |
+| **Quoted Context** | Quoted text and media become normalized Hermes context. Provider URLs remain staging inputs and are excluded from model-facing raw metadata. |
+| **Media Normalization** | Additional Zalo media URL fields are classified and staged through the existing jail and SSRF protections. |
 
 ---
 
-## 🔄 Seamless Zero-Downtime Upgrade (For Existing Users)
+## 🔄 Upgrade (For Existing Users)
 
-If you already installed `abs-zalo-bot`, upgrading to **v0.7.1** takes 5 seconds with **ZERO data loss and NO QR re-scan**:
+If you already installed `abs-zalo-bot`, upgrade to **v0.9.2** after backing up your runtime data:
 
 - **If installed via NPM:**
   ```bash
@@ -258,7 +258,7 @@ If you already installed `abs-zalo-bot`, upgrading to **v0.7.1** takes 5 seconds
   docker compose pull && docker compose up -d
   ```
 
-> *Your active login sessions (`data/sessions/`), databases (`data/bridge.sqlite3`), and `.env` settings are 100% preserved. The bot seamlessly reconnects without requesting a new QR scan.*
+> The upgrade does not intentionally modify `data/sessions/`, `data/bridge.sqlite3`, or `.env`. Back them up before upgrading; reconnection behavior still depends on the active Zalo session.
 
 ---
 

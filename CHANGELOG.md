@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.9.2 (2026-09-22)
+
+### Rich Message Delivery
+
+- Split rendered replies into sequential bubbles without dropping characters or breaking UTF-16 surrogate pairs. Every bubble is capped at 2,000 UTF-16 code units, 40 styles, and 3,000 encoded bytes.
+- Preserve native Zalo formatting by clipping and rebasing styles for each bubble.
+- Keep quoted context on the first bubble and attachments on the last bubble.
+- Retry once as plain text only after a numeric provider rejection; ambiguous network failures are not retried.
+- Normalize quoted text, quoted media, and additional provider media URL fields without exposing raw provider URLs in model-facing metadata.
+
 ## v0.9.1 (2026-09-17)
 
 ### ABS Enterprise Features
@@ -23,7 +33,7 @@
 
 - **Listener Auto-Restart:** Bắt sự kiện `closed` của `zca-js` khi listener đóng hoàn toàn (bot "điếc" ngầm), tự mở lại theo nhịp lũy tiến `[5s, 15s, 30s, 60s, 120s, 300s]` không cần khởi động thủ công.
 - **Plaintext Fallback:** `performPersonalAction("send_message")` tự động lột style và gửi lại chữ thường khi Zalo từ chối tin nhắn có định dạng (mã lỗi số âm = server-side reject). Lỗi mạng không gửi lại tránh trùng tin.
-- **Payload byte budget:** `measurePayloadBytes()` và `MAX_ZALO_PAYLOAD_BYTES = 3000` trong `zalo_styler.js` — bảo đảm gói tin không vượt ngưỡng thực đo 3.448 byte mà Zalo từ chối.
+- **Payload byte budget:** `measurePayloadBytes()` và `MAX_ZALO_PAYLOAD_BYTES = 3000` trong `zalo_styler.js` giới hạn payload chữ và style trước khi gửi.
 - **Fix `getGroupMembers`:** API mới `getGroupMembers(groupId)` trên `AccountRuntime` gọi `getGroupInfo` lấy danh sách UID thành viên trước, sau đó mới gọi `getGroupMembersInfo` đúng thứ tự, tránh lỗi API "không xác định".
 
 ## v0.7.0

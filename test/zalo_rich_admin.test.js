@@ -14,6 +14,11 @@ import {
   splitIntoSafeZaloChunks,
   buildZaloStyledMessage,
   capStyles,
+  formatAndChunkZaloMarkdown,
+  measurePayloadBytes,
+  MAX_ZALO_PAYLOAD_BYTES,
+  MAX_ZALO_STYLES,
+  MAX_ZALO_UTF16_LENGTH,
   ZALO_STYLES,
 } from "../src/zalo_styler.js";
 
@@ -94,6 +99,30 @@ test("Zalo Rich Text & Auto Styling Engine", async (t) => {
     // Ensure high priority (HeaderLarge / Colors) survived pruning over low priority (Italic)
     assert.ok(capped.some((s) => s.st === ZALO_STYLES.HeaderLarge), "HeaderLarge should survive budget pruning");
     assert.ok(capped.some((s) => s.st === ZALO_STYLES.RubyRed), "Color tags should survive budget pruning");
+  });
+
+  await t.test("heading ranges are measured after inline Markdown is removed", () => {
+    const { text, styles } = parseMarkdownStyles("# Hồ sơ **quan trọng**\nNội dung");
+    assert.equal(text, "Hồ sơ quan trọng\nNội dung");
+    assert.ok(styles.some((style) => style.st === ZALO_STYLES.HeaderLarge && style.start === 0 && style.len === 16));
+    assert.ok(styles.some((style) => style.st === ZALO_STYLES.Bold && style.start === 6 && style.len === 10));
+  });
+
+  await t.test("styled Vietnamese and emoji survive every safe payload boundary", () => {
+    const source = `[RED]${"Tiếng Việt 😊 cần giữ nguyên. ".repeat(420)}[/RED]`;
+    const rendered = parseMarkdownStyles(source);
+    const chunks = formatAndChunkZaloMarkdown(source);
+    assert.ok(chunks.length > 1);
+    assert.equal(chunks.map((chunk) => chunk.msg).join(""), rendered.text);
+    for (const chunk of chunks) {
+      assert.ok(chunk.msg.length <= MAX_ZALO_UTF16_LENGTH);
+      assert.ok(chunk.styles.length <= MAX_ZALO_STYLES);
+      assert.ok(measurePayloadBytes(chunk.msg, chunk.styles) <= MAX_ZALO_PAYLOAD_BYTES);
+      assert.ok(!/[\uD800-\uDBFF]$/u.test(chunk.msg));
+      assert.ok(!/^[\uDC00-\uDFFF]/u.test(chunk.msg));
+      assert.ok(chunk.styles.some((style) => style.st === ZALO_STYLES.RubyRed));
+      assert.ok(chunk.styles.every((style) => style.start >= 0 && style.start + style.len <= chunk.msg.length));
+    }
   });
 });
 
@@ -266,4 +295,88 @@ test("Zalo Group Administration Endpoints & Runtime", async (t) => {
     assert.equal(jsonSettings.ok, true);
     assert.equal(jsonSettings.result.settings.enableMsgHistory, 1);
   });
+});
+
+test("runtime preserves chunk context and retries only confirmed provider rejections", async (t) => {
+  const dir = tempDir();
+  const configPath = path.join(dir, "config.toml");
+  fs.writeFileSync(configPath, 'default_account_id="default"\nretention_days=30\nlistener_only=false\n');
+  const config = loadConfig(configPath);
+  const store = new Store(dir);
+  const policy = new PolicyGuard({ config, store });
+  const runtime = new BridgeHub({ config, store, policy, clientFactory: {} }).getRuntime("default");
+  const mediaRoot = path.join(dir, "media-root");
+  fs.mkdirSync(mediaRoot);
+  const attachmentPath = path.join(mediaRoot, "ket-qua.txt");
+  fs.writeFileSync(attachmentPath, "fixture");
+  const oldMediaRoot = process.env.ABS_ZALO_MEDIA_ROOT;
+  process.env.ABS_ZALO_MEDIA_ROOT = mediaRoot;
+  t.after(() => {
+    store.close();
+    if (oldMediaRoot == null) delete process.env.ABS_ZALO_MEDIA_ROOT;
+    else process.env.ABS_ZALO_MEDIA_ROOT = oldMediaRoot;
+  });
+
+  const calls = [];
+  runtime.api = {
+    sendMessage: async (payload) => {
+      calls.push(payload);
+      return { message: { msgId: `m-${calls.length}` } };
+    },
+  };
+  await runtime.performPersonalAction("send_message", {
+    thread_id: "group-safe",
+    thread_type: 1,
+    text: `[RED]${"Nội dung dài 😊. ".repeat(500)}[/RED]`,
+    parse_markdown: true,
+    quote: { msgId: "quoted-1" },
+    attachment_path: attachmentPath,
+  });
+  assert.ok(calls.length > 1);
+  assert.deepEqual(calls[0].quote, { msgId: "quoted-1" });
+  assert.ok(calls.slice(1).every((payload) => payload.quote === undefined));
+  assert.ok(calls.slice(0, -1).every((payload) => payload.attachments === undefined));
+  assert.equal(calls.at(-1).attachments.filename, "ket-qua.txt");
+  assert.ok(calls.every((payload) => payload.styles?.length));
+
+  const rejectedCalls = [];
+  runtime.api = {
+    sendMessage: async (payload) => {
+      rejectedCalls.push(payload);
+      if (payload.styles) {
+        const error = new Error("provider rejected style");
+        error.code = -201;
+        throw error;
+      }
+      return { message: { msgId: "plain-ok" } };
+    },
+  };
+  await runtime.performPersonalAction("send_message", {
+    thread_id: "group-safe",
+    thread_type: 1,
+    text: "**Quan trọng**",
+    parse_markdown: true,
+  });
+  assert.equal(rejectedCalls.length, 2);
+  assert.ok(rejectedCalls[0].styles?.length);
+  assert.equal(rejectedCalls[1].styles, undefined);
+  assert.equal(rejectedCalls[1].msg, "Quan trọng");
+
+  let ambiguousCalls = 0;
+  runtime.api = {
+    sendMessage: async () => {
+      ambiguousCalls += 1;
+      throw new Error("socket closed");
+    },
+  };
+  await assert.rejects(
+    runtime.performPersonalAction("send_message", {
+      thread_id: "group-safe",
+      thread_type: 1,
+      text: "**Không gửi lặp**",
+      parse_markdown: true,
+    }),
+    /socket closed/u,
+  );
+  assert.equal(ambiguousCalls, 1);
 });

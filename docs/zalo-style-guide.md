@@ -1,6 +1,6 @@
 # Hướng Dẫn Trình Bày & Phong Cách Tin Nhắn Zalo (Zalo Style Guide)
 > **Chuẩn hoá định dạng tin nhắn cho Zalo AI Agent (Amon, Lavie, Coach, Travel & Enterprise Bots).**  
-> Đúc kết từ thực chiến hàng trăm nghìn phiên chat, tối ưu trải nghiệm đọc trên màn hình điện thoại di động và tương thích tuyệt đối với giao thức Zalo API.
+> Quy ước mobile-first cho câu trả lời dễ quét trên Zalo; giới hạn kỹ thuật bên dưới bám theo contract gửi hiện tại của ABS Zalo Bot.
 
 ---
 
@@ -57,9 +57,9 @@ Hệ thống hỗ trợ cả 3 dạng thẻ màu: tiếng Anh, tiếng Việt c�
    * *Giải pháp:* Chỉ cần cách 1 dòng trống đơn thuần là đủ trang nhã. Engine `abs-zalo-bot` đã được tích hợp bộ lọc tự động triệt tiêu `---` thành khoảng trắng sạch.
 2. **Không lạm dụng thẻ màu trên toàn bộ đoạn văn:**
    * Chỉ bọc màu cho từ ngữ đắt giá (1–5 từ). Bọc nguyên một câu dài bằng màu đỏ hoặc vàng sẽ gây chói mắt và làm mất tính sang trọng.
-3. **Không lo vượt trần Style JSON (Đã có `capStyles` tự động):**
-   * Zalo Web API có giới hạn ngầm mảng style không được vượt quá ~256 bytes JSON.
-   * Engine tự động bảo vệ: Nếu bài viết quá nhiều style, thuật toán sẽ tự động gọt bớt các style phụ (gạch chân, in nghiêng) và bảo tồn 100% Tiêu đề và Thẻ màu. Không bao giờ xảy ra lỗi drop tin ngầm.
+3. **Giữ định dạng trong ngân sách payload:**
+   * Mỗi bong bóng được giới hạn ở 2.000 UTF-16 code units, 40 style và 3.000 byte cho phần chữ UTF-8 cộng JSON style.
+   * Engine chia trên ranh giới dễ đọc, không cắt surrogate pair, rồi clip/rebase style cho từng bong bóng. Chỉ retry một lần dạng plain text khi provider trả mã lỗi dạng số; lỗi mạng mơ hồ không retry để tránh gửi trùng.
 4. **Kỷ luật Sticker & Voice:**
    * Trong các nhóm thảo luận công việc, quản trị, hoặc hỗ trợ kỹ thuật: Tuyệt đối không tự ý gửi sticker hoạt hình làm phiền người dùng.
    * Tin nhắn thoại (Voice): Chỉ gửi khi người dùng yêu cầu nghe giọng nói.

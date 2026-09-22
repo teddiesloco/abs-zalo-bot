@@ -107,6 +107,28 @@ export function extractText(content) {
  * Normalize a zca-js style message into the internal event schema.
  * account_id is required so multi-session never collides.
  */
+function quoteContent(quote) {
+  if (!quote || typeof quote !== "object") return null;
+  let attachment = quote.attach;
+  if (typeof attachment === "string" && attachment.trim()) {
+    try {
+      attachment = JSON.parse(attachment);
+    } catch {
+      attachment = null;
+    }
+  }
+  return attachment || quote.content || quote;
+}
+
+function quoteText(quote) {
+  if (!quote || typeof quote !== "object") return "";
+  const value = quote.msg ?? quote.content;
+  if (typeof value === "string" && value.trim()) return value.trim().slice(0, 500);
+  const content = quoteContent(quote);
+  if (!content || typeof content !== "object") return "";
+  const title = String(content.title || content.name || content.fileName || "").trim();
+  return (extractText(content) || title).trim().slice(0, 500);
+}
 export function normalizeInboundMessage({ accountId, message, sourceName = "" }) {
   if (!accountId) throw new Error("account_id required");
   if (!message) throw new Error("message required");
@@ -120,7 +142,9 @@ export function normalizeInboundMessage({ accountId, message, sourceName = "" })
   const senderName = String(data.dName ?? data.displayName ?? data.senderName ?? "");
   const content = data.content;
   const messageType = classifyMessageType(content);
-  const text = extractText(content);
+  const ownText = extractText(content);
+  const quotedText = quoteText(data.quote);
+  const text = quotedText ? `[Trích dẫn] ${quotedText}\n${ownText}`.trim() : ownText;
   const createdAt = data.ts
     ? new Date(Number(data.ts) || data.ts).toISOString()
     : utcNow();
@@ -157,11 +181,16 @@ export function normalizeInboundMessage({ accountId, message, sourceName = "" })
       thread_type: message.type,
       cli_msg_id: data.cliMsgId ?? null,
       has_quote: Boolean(data.quote),
+      quoted_message_id: data.quote?.msgId ? String(data.quote.msgId) : null,
+      quoted_author_id: data.quote?.ownerId ? String(data.quote.ownerId) : null,
       mention_count: Array.isArray(data.mentions) ? data.mentions.length : 0,
     },
     // Ephemeral only: AccountRuntime stages approved media and removes URLs
     // before Store persists the event.
-    attachment_candidates: extractAttachmentCandidates(content),
+    attachment_candidates: [
+      ...extractAttachmentCandidates(content),
+      ...extractAttachmentCandidates(quoteContent(data.quote)),
+    ].slice(0, 4),
     created_at: createdAt,
   };
 }

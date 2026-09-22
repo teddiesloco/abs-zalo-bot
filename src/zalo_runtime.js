@@ -4,7 +4,7 @@ import path from "node:path";
 import { EventEmitter } from "node:events";
 import { normalizeInboundMessage, utcNow } from "./schema.js";
 import { stageHermesMedia, withAudioExtension } from "./hermes_media.js";
-import { buildZaloStyledMessage, splitIntoSafeZaloChunks } from "./zalo_styler.js";
+import { chunkZaloStyledText, formatAndChunkZaloMarkdown } from "./zalo_styler.js";
 import { findMentions } from "./zalo_mentions.js";
 import { enrichSticker, stickerRefOf } from "./zalo_stickers.js";
 import { classifyAttachments } from "./zalo_attachments.js";
@@ -298,24 +298,18 @@ export class AccountRuntime extends EventEmitter {
     }
   }
 
-  async sendText(targetId, text, threadType = 1) {
+  async sendText(threadId, text, type = 1) {
     if (!this.api?.sendMessage) throw new Error("not_connected");
-    // Final defense-in-depth gate; no caller can bypass PolicyGuard merely by
-    // holding a runtime reference.
-    const outbound = this.policy.evaluateOutbound({
-      accountId: this.accountId,
-      targetId,
-      text,
-      kind: "runtime_send",
-    });
-    if (!outbound.allow) throw new Error(outbound.reason || "outbound_disabled");
-    // Final hard gate: never send outside destination when READ_ONLY_SOURCE.
     const dest = this.store.getDestination(this.accountId);
-    if (!dest.group_id || String(targetId) !== String(dest.group_id)) {
-      throw new Error("blocked_non_destination_send");
+    if (!dest.group_id || String(threadId) !== String(dest.group_id)) {
+      throw new Error("outbound_target_not_destination");
     }
-    // Never send to source groups even if mis-called with group thread type.
-    return this.api.sendMessage(String(text), String(targetId), 1);
+    return this.performPersonalAction("send_message", {
+      thread_id: threadId,
+      thread_type: type,
+      text,
+      parse_markdown: true,
+    });
   }
 
   // ── Group Management & Advanced Ops (ABS Specialized Methods) ──
@@ -512,55 +506,84 @@ export class AccountRuntime extends EventEmitter {
     switch (name) {
       case "send_message": {
         if (typeof api.sendMessage !== "function") break;
-        let textContent = String(payload.text || "");
-        if (textContent.includes("[[NEW_MESSAGE]]")) {
-          const parts = textContent.split(/\[\[NEW_MESSAGE\]\]/g).map((p) => p.trim()).filter(Boolean);
-          if (parts.length > 1) {
-            let lastRes = null;
-            for (const part of parts) {
-              lastRes = await this.performPersonalAction("send_message", { ...payload, text: part });
-            }
-            return lastRes;
+        const rawText = String(payload.text || "");
+        const targetId = target();
+        const resolvedThreadType = threadType(payload.thread_type);
+        const parts = rawText.includes("[[NEW_MESSAGE]]")
+          ? rawText.split(/\[\[NEW_MESSAGE\]\]/gu).map((part) => part.trim()).filter(Boolean)
+          : [rawText];
+        if (!parts.length && !payload.attachment_path) throw new Error("text_or_attachment_required");
+
+        let members = [];
+        const explicitMentions = Array.isArray(payload.mentions) ? payload.mentions.slice(0, 50) : null;
+        if (!explicitMentions && resolvedThreadType === 1 && rawText.includes("@") && typeof api.getGroupInfo === "function") {
+          try {
+            const groupInfo = await api.getGroupInfo(targetId);
+            members = groupInfo?.members || groupInfo?.memList || [];
+          } catch {
+            /* mention lookup is best effort */
           }
         }
-        let styles = Array.isArray(payload.styles) ? payload.styles : undefined;
-        if (!styles && (payload.styled || payload.parse_markdown || /[*_~#\[]/.test(textContent))) {
-          const parsed = buildZaloStyledMessage(textContent);
-          textContent = parsed.msg;
-          styles = parsed.styles;
-        }
-        const message = { msg: textContent.slice(0, 4000) };
-        if (!message.msg && !payload.attachment_path) throw new Error("text_or_attachment_required");
-        if (payload.quote) message.quote = payload.quote;
-        if (Array.isArray(payload.mentions)) {
-          message.mentions = payload.mentions.slice(0, 50);
-        } else if (threadType(payload.thread_type) === 1 && textContent.includes("@") && typeof api.getGroupInfo === "function") {
-          try {
-            const groupInfo = await api.getGroupInfo(target());
-            const mems = groupInfo?.members || groupInfo?.memList || [];
-            if (Array.isArray(mems) && mems.length) {
-              const detected = findMentions(textContent, mems);
+
+        const attachment = payload.attachment_path
+          ? controlledAttachment(payload.attachment_path)
+          : null;
+        let lastResult = null;
+        let globalOffset = 0;
+        for (let partIndex = 0; partIndex < parts.length; partIndex += 1) {
+          const part = parts[partIndex];
+          let chunks;
+          if (explicitMentions || Array.isArray(payload.styles)) {
+            const partStyles = parts.length === 1 && Array.isArray(payload.styles) ? payload.styles : [];
+            chunks = chunkZaloStyledText(part, partStyles);
+          } else if (payload.styled || payload.parse_markdown || /[*_~#\[]/u.test(part)) {
+            chunks = formatAndChunkZaloMarkdown(part);
+          } else {
+            chunks = chunkZaloStyledText(part);
+          }
+          if (!chunks.length && attachment) chunks = [{ msg: "", styles: [] }];
+
+          for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
+            const item = chunks[chunkIndex];
+            const isFirst = partIndex === 0 && chunkIndex === 0;
+            const isLast = partIndex === parts.length - 1 && chunkIndex === chunks.length - 1;
+            const message = { msg: item.msg };
+            if (item.styles?.length) message.styles = item.styles;
+            if (isFirst && payload.quote) message.quote = payload.quote;
+            if (isLast && attachment) message.attachments = attachment;
+
+            if (explicitMentions) {
+              const chunkEnd = globalOffset + item.msg.length;
+              const clipped = explicitMentions
+                .filter((mention) => {
+                  const pos = Number(mention?.pos);
+                  const len = Number(mention?.len);
+                  return Number.isInteger(pos) && Number.isInteger(len)
+                    && len > 0 && pos >= globalOffset && pos + len <= chunkEnd;
+                })
+                .map((mention) => ({ ...mention, pos: Number(mention.pos) - globalOffset }));
+              if (clipped.length) message.mentions = clipped;
+            } else if (members.length && item.msg.includes("@")) {
+              const detected = findMentions(item.msg, members, {
+                continuesInNextChunk: !isLast,
+              });
               if (detected.length) message.mentions = detected;
             }
-          } catch {
-            /* ignore mention fetch failure */
+
+            try {
+              lastResult = await api.sendMessage(message, targetId, resolvedThreadType);
+            } catch (err) {
+              if (!(message.styles || message.mentions) || !/^-?\d+$/u.test(String(err?.code ?? ""))) throw err;
+              console.warn(
+                `[zalo_runtime] Zalo từ chối chunk ${chunkIndex + 1}/${chunks.length} có định dạng/tag (mã ${err.code}) — gửi lại dạng chữ thường`,
+              );
+              const { styles: _styles, mentions: _mentions, ...plain } = message;
+              lastResult = await api.sendMessage(plain, targetId, resolvedThreadType);
+            }
+            globalOffset += item.msg.length;
           }
         }
-        if (payload.attachment_path) message.attachments = controlledAttachment(payload.attachment_path);
-        if (styles) message.styles = styles;
-        // Plaintext fallback: if Zalo rejects a styled message with a numeric error
-        // code (server-side rejection), retry as plain text to avoid silently losing
-        // the message. Network errors (no code) are NOT retried to avoid duplicates.
-        try {
-          return await api.sendMessage(message, target(), threadType(payload.thread_type));
-        } catch (err) {
-          if (!message.styles || !/^-?\d+$/.test(String(err?.code ?? ""))) throw err;
-          console.warn(
-            `[zalo_runtime] Zalo từ chối tin có style (mã ${err.code}) — gửi lại dạng chữ thường`,
-          );
-          const { styles: _dropped, ...plain } = message;
-          return api.sendMessage(plain, target(), threadType(payload.thread_type));
-        }
+        return lastResult;
       }
       case "send_sticker":
         if (typeof api.sendSticker !== "function") break;

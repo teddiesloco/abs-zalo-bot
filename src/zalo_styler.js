@@ -1,6 +1,6 @@
 // ABS Zalo Rich Text & Auto Styling Engine
 // Converts Markdown and color tags into native Zalo TextStyle formatting
-// Ensures message chunks stay within safe bubble limits (<= 650 chars).
+// Preserves styled content within UTF-16, style-count, and encoded-byte budgets.
 
 import { latexToUnicode } from "./zalo_math.js";
 
@@ -21,7 +21,8 @@ export const ZALO_STYLES = {
 };
 
 export const MAX_ZALO_STYLE_JSON_LENGTH = 250;
-export const MAX_ZALO_UTF16_LENGTH = 2800;
+export const MAX_ZALO_STYLES = 40;
+export const MAX_ZALO_UTF16_LENGTH = 2000;
 export const MAX_ZALO_PAYLOAD_BYTES = 3000;
 
 /**
@@ -70,9 +71,9 @@ function getStylePriority(st) {
 }
 
 /**
- * Cap Zalo styles to prevent exceeding Zalo's JSON style payload ceiling (~256 bytes).
- * When over budget, lower-priority styles (italic, bold) are pruned first
- * while preserving high-priority headings and colors.
+ * Cap styles for legacy callers that request a smaller serialized-style budget.
+ * Lower-priority styles are pruned first; current outbound chunking separately
+ * enforces the complete UTF-16, style-count, and encoded-byte contract.
  */
 export function capStyles(styles, maxJsonLength = MAX_ZALO_STYLE_JSON_LENGTH) {
   if (!Array.isArray(styles) || styles.length === 0) return [];
@@ -98,54 +99,124 @@ export function capStyles(styles, maxJsonLength = MAX_ZALO_STYLE_JSON_LENGTH) {
   return styles.filter((s) => retained.has(s));
 }
 
-/**
- * Split text into chunks safe for Zalo's message length limits.
- * Default max is 650 chars to avoid error 118 (content too long).
- */
-export function splitIntoSafeZaloChunks(text, maxCharsPerChunk = 650) {
-  if (!text) return [];
+/** Split plain text into provider-safe Zalo bubbles without losing characters. */
+export function splitIntoSafeZaloChunks(text, maxCharsPerChunk = MAX_ZALO_UTF16_LENGTH) {
+  return chunkZaloStyledText(text, [], { maxUtf16: maxCharsPerChunk }).map((chunk) => chunk.msg);
+}
 
-  const rawParagraphs = String(text)
-    .split(/\n\s*\n+/)
-    .map((p) => p.trim())
-    .filter(Boolean);
+function normalizedStyles(styles, textLength) {
+  if (!Array.isArray(styles)) return [];
+  return styles
+    .map((style) => ({
+      start: Math.max(0, Number(style?.start) || 0),
+      len: Math.max(0, Number(style?.len) || 0),
+      st: String(style?.st || ""),
+    }))
+    .filter((style) => style.st && style.len > 0 && style.start < textLength)
+    .map((style) => ({ ...style, len: Math.min(style.len, textLength - style.start) }))
+    .sort((a, b) => a.start - b.start || b.len - a.len);
+}
 
+function stylesForRange(styles, start, end, maxStyles = MAX_ZALO_STYLES) {
+  return styles
+    .filter((style) => style.start < end && style.start + style.len > start)
+    .map((style) => ({
+      start: Math.max(style.start, start) - start,
+      len: Math.min(style.start + style.len, end) - Math.max(style.start, start),
+      st: style.st,
+    }))
+    .slice(0, maxStyles);
+}
+
+function codePointEnds(text, start, maxUtf16) {
+  const ends = [];
+  let cursor = start;
+  while (cursor < text.length) {
+    const width = text.codePointAt(cursor) > 0xffff ? 2 : 1;
+    if (cursor + width - start > maxUtf16) break;
+    cursor += width;
+    ends.push(cursor);
+  }
+  return ends;
+}
+
+function readableBoundary(text, start, maxEnd) {
+  const slice = text.slice(start, maxEnd);
+  const threshold = Math.floor(slice.length * 0.55);
+  const accept = (index) => (index >= threshold ? start + index : 0);
+  const paragraph = slice.lastIndexOf("\n\n");
+  if (paragraph >= 0 && accept(paragraph + 2)) return start + paragraph + 2;
+  const line = slice.lastIndexOf("\n");
+  if (line >= 0 && accept(line + 1)) return start + line + 1;
+  let sentence = 0;
+  for (const match of slice.matchAll(/[.!?…。！？](?:[ \t]+|$)/gu)) {
+    sentence = match.index + match[0].length;
+  }
+  if (sentence && accept(sentence)) return start + sentence;
+  const space = slice.lastIndexOf(" ");
+  if (space >= 0 && accept(space + 1)) return start + space + 1;
+  return maxEnd;
+}
+
+/** Split rendered text while clipping/rebasing native Zalo styles. */
+export function chunkZaloStyledText(
+  text,
+  styles = [],
+  {
+    maxUtf16 = MAX_ZALO_UTF16_LENGTH,
+    maxStyles = MAX_ZALO_STYLES,
+    maxPayloadBytes = MAX_ZALO_PAYLOAD_BYTES,
+  } = {},
+) {
+  const body = String(text || "");
+  if (!body) return [];
+  if (!Number.isInteger(maxUtf16) || maxUtf16 < 1) throw new Error("invalid_zalo_utf16_limit");
+  if (!Number.isInteger(maxStyles) || maxStyles < 1) throw new Error("invalid_zalo_style_limit");
+  if (!Number.isInteger(maxPayloadBytes) || maxPayloadBytes < 64) throw new Error("invalid_zalo_payload_limit");
+
+  const safeStyles = normalizedStyles(styles, body.length);
   const chunks = [];
-  let currentBuffer = "";
+  let start = 0;
+  while (start < body.length) {
+    const ends = codePointEnds(body, start, maxUtf16);
+    if (!ends.length) throw new Error("zalo_chunk_boundary_unavailable");
 
-  for (const para of rawParagraphs) {
-    if (para.length > maxCharsPerChunk) {
-      const lines = para.split("\n").map((l) => l.trim()).filter(Boolean);
-      for (const line of lines) {
-        if ((currentBuffer + "\n" + line).trim().length <= maxCharsPerChunk) {
-          currentBuffer = currentBuffer ? `${currentBuffer}\n${line}` : line;
-        } else {
-          if (currentBuffer) chunks.push(currentBuffer.trim());
-          if (line.length > maxCharsPerChunk) {
-            for (let i = 0; i < line.length; i += maxCharsPerChunk) {
-              chunks.push(line.slice(i, i + maxCharsPerChunk).trim());
-            }
-            currentBuffer = "";
-          } else {
-            currentBuffer = line;
-          }
-        }
-      }
-    } else {
-      if ((currentBuffer + "\n\n" + para).trim().length <= maxCharsPerChunk) {
-        currentBuffer = currentBuffer ? `${currentBuffer}\n\n${para}` : para;
+    let low = 0;
+    let high = ends.length - 1;
+    let best = -1;
+    while (low <= high) {
+      const middle = Math.floor((low + high) / 2);
+      const end = ends[middle];
+      const clipped = stylesForRange(safeStyles, start, end, maxStyles);
+      const fits = measurePayloadBytes(body.slice(start, end), clipped) <= maxPayloadBytes;
+      if (fits) {
+        best = middle;
+        low = middle + 1;
       } else {
-        if (currentBuffer) chunks.push(currentBuffer.trim());
-        currentBuffer = para;
+        high = middle - 1;
       }
     }
-  }
 
-  if (currentBuffer) {
-    chunks.push(currentBuffer.trim());
+    const maxEnd = ends[Math.max(best, 0)];
+    let end = maxEnd === body.length ? maxEnd : readableBoundary(body, start, maxEnd);
+    let clipped = stylesForRange(safeStyles, start, end, maxStyles);
+    while (end > start && measurePayloadBytes(body.slice(start, end), clipped) > maxPayloadBytes) {
+      const prior = ends.findLast((candidate) => candidate < end);
+      if (!prior) break;
+      end = prior;
+      clipped = stylesForRange(safeStyles, start, end, maxStyles);
+    }
+    while (clipped.length && measurePayloadBytes(body.slice(start, end), clipped) > maxPayloadBytes) {
+      clipped.pop();
+    }
+    if (measurePayloadBytes(body.slice(start, end), clipped) > maxPayloadBytes) {
+      throw new Error("zalo_payload_budget_too_small");
+    }
+    if (end <= start) throw new Error("zalo_payload_budget_too_small");
+    chunks.push({ msg: body.slice(start, end), styles: clipped });
+    start = end;
   }
-
-  return chunks.filter((c) => c.length > 0);
+  return chunks;
 }
 
 /**
@@ -163,102 +234,171 @@ export function splitIntoSafeZaloChunks(text, maxCharsPerChunk = 650) {
  *   [ORANGE]...[/ORANGE] or [CAM]...[/CAM] -> Bold + Amber Orange
  *   [YELLOW]...[/YELLOW] or [VÀNG]...[/VÀNG] -> Bold + Royal Gold
  */
-export function parseMarkdownStyles(input) {
-  let text = latexToUnicode(String(input || ""));
+function colorStyleForTag(tag) {
+  const key = String(tag || "")
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/Đ/gu, "D")
+    .toUpperCase();
+  if (key === "RED" || key === "DO") return ZALO_STYLES.RubyRed;
+  if (key === "GREEN" || key === "XANH") return ZALO_STYLES.EmeraldGreen;
+  if (key === "ORANGE" || key === "CAM") return ZALO_STYLES.AmberOrange;
+  if (key === "YELLOW" || key === "VANG") return ZALO_STYLES.RoyalGold;
+  return "";
+}
+
+function parseInlineMarkdown(source, baseOffset) {
+  const output = [];
   const styles = [];
-
-  // 1. Process headings line by line
-  const lines = text.split("\n");
-  const processedLines = [];
-  const headingStyles = [];
-  let charCount = 0;
-
-  for (let line of lines) {
-    let hType = 0;
-    // Strip markdown horizontal rules (---, ***, ___) to avoid ugly wide gap in Zalo mobile
-    if (/^\s*[-*_]{3,}\s*$/.test(line)) {
-      line = "";
+  const stacks = new Map();
+  let outputLength = 0;
+  const append = (value) => {
+    output.push(value);
+    outputLength += value.length;
+  };
+  const open = (key, styleList) => {
+    const stack = stacks.get(key) || [];
+    stack.push({ start: baseOffset + outputLength, styleList });
+    stacks.set(key, stack);
+  };
+  const close = (key) => {
+    const stack = stacks.get(key);
+    const item = stack?.pop();
+    if (!item) return false;
+    const len = baseOffset + outputLength - item.start;
+    if (len > 0) {
+      for (const st of item.styleList) styles.push({ start: item.start, len, st });
     }
+    return true;
+  };
 
-    if (line.startsWith("# ")) {
-      hType = 1;
-      line = line.slice(2);
-    } else if (line.startsWith("## ")) {
-      hType = 2;
-      line = line.slice(3);
-    } else if (line.startsWith("### ")) {
-      hType = 3;
-      line = line.slice(4);
-    }
-
-    const start = charCount;
-    const len = line.length;
-
-    if (hType === 1 && len > 0) {
-      headingStyles.push(
-        { start, len, st: ZALO_STYLES.Bold },
-        { start, len, st: ZALO_STYLES.HeaderLarge },
-        { start, len, st: ZALO_STYLES.RubyRed }
-      );
-    } else if (hType === 2 && len > 0) {
-      headingStyles.push(
-        { start, len, st: ZALO_STYLES.Bold },
-        { start, len, st: ZALO_STYLES.EmeraldGreen }
-      );
-    } else if (hType === 3 && len > 0) {
-      headingStyles.push(
-        { start, len, st: ZALO_STYLES.Bold },
-        { start, len, st: ZALO_STYLES.AmberOrange }
-      );
-    }
-    processedLines.push(line);
-    charCount += line.length + 1; // +1 for newline character
-  }
-  text = processedLines.join("\n");
-  styles.push(...headingStyles);
-
-  // Helper function to replace regex patterns and adjust style positions
-  function replaceTag(regex, styleList) {
-    let match;
-    while ((match = regex.exec(text)) !== null) {
-      const matchStart = match.index;
-      const fullLen = match[0].length;
-      const innerText = match[1];
-      const innerLen = innerText.length;
-      const delta = fullLen - innerLen;
-
-      text = text.slice(0, matchStart) + innerText + text.slice(matchStart + fullLen);
-
-      // Adjust existing style offsets that occur after this match
-      for (const s of styles) {
-        if (s.start >= matchStart + fullLen) {
-          s.start -= delta;
-        } else if (s.start >= matchStart) {
-          s.len = Math.max(0, s.len - delta);
+  for (let index = 0; index < source.length;) {
+    const rest = source.slice(index);
+    const color = rest.match(/^\[(\/)?(RED|GREEN|ORANGE|YELLOW|ĐỎ|DO|XANH|CAM|VÀNG|VANG)\]/iu);
+    if (color) {
+      const style = colorStyleForTag(color[2]);
+      const key = `color:${style}`;
+      if (color[1]) {
+        if (!close(key)) append(color[0]);
+      } else {
+        const closeTag = new RegExp(`\\[\\/(?:${color[2]})\\]`, "iu");
+        if (closeTag.test(source.slice(index + color[0].length))) {
+          open(key, [ZALO_STYLES.Bold, style]);
+        } else {
+          append(color[0]);
         }
       }
+      index += color[0].length;
+      continue;
+    }
 
-      for (const st of styleList) {
-        styles.push({ start: matchStart, len: innerLen, st });
+    if (source[index] === "`") {
+      const closing = source.indexOf("`", index + 1);
+      if (closing > index) {
+        append(source.slice(index + 1, closing));
+        index = closing + 1;
+        continue;
       }
+    }
 
-      regex.lastIndex = matchStart + innerLen;
+    const link = rest.match(/^\[(.+?)\]\((https?:\/\/[^)]+)\)/iu);
+    if (link) {
+      append(`${link[1]}: ${link[2]}`);
+      index += link[0].length;
+      continue;
+    }
+
+    const marker = [
+      ["**", ZALO_STYLES.Bold],
+      ["__", ZALO_STYLES.Underline],
+      ["~~", ZALO_STYLES.StrikeThrough],
+      ["*", ZALO_STYLES.Italic],
+      ["_", ZALO_STYLES.Italic],
+    ].find(([token]) => source.startsWith(token, index));
+    if (marker) {
+      const [token, style] = marker;
+      const key = `markdown:${token}`;
+      if (stacks.get(key)?.length) {
+        close(key);
+        index += token.length;
+        continue;
+      }
+      if (source.indexOf(token, index + token.length) >= 0) {
+        open(key, [style]);
+        index += token.length;
+        continue;
+      }
+    }
+
+    const char = String.fromCodePoint(source.codePointAt(index));
+    append(char);
+    index += char.length;
+  }
+
+  return { text: output.join(""), styles };
+}
+
+/** Parse the supported Markdown/color subset into native Zalo styles. */
+export function parseMarkdownStyles(input) {
+  const normalized = latexToUnicode(String(input || ""))
+    .replace(/\r\n?/g, "\n")
+    .replace(/^[ \t]*(?:-{3,}|\*{3,}|_{3,})[ \t]*$/gm, "")
+    .replace(/\n{3,}/g, "\n\n");
+  if (!normalized) return { text: "", styles: [] };
+
+  const output = [];
+  const styles = [];
+  let outputLength = 0;
+  let fencedCode = false;
+  const lines = normalized.split("\n");
+  for (let index = 0; index < lines.length; index += 1) {
+    let source = lines[index];
+    if (/^\s*```/u.test(source)) {
+      fencedCode = !fencedCode;
+      continue;
+    }
+
+    const lineStart = outputLength;
+    let parsed;
+    let headingStyles = [];
+    if (fencedCode) {
+      parsed = { text: source, styles: [] };
+    } else {
+      const heading = source.match(/^(#{1,3})\s+(.+)$/u);
+      if (heading) {
+        source = heading[2];
+        headingStyles = heading[1].length === 1
+          ? [ZALO_STYLES.Bold, ZALO_STYLES.HeaderLarge, ZALO_STYLES.RubyRed]
+          : heading[1].length === 2
+            ? [ZALO_STYLES.Bold, ZALO_STYLES.EmeraldGreen]
+            : [ZALO_STYLES.Bold, ZALO_STYLES.AmberOrange];
+      } else {
+        source = source.replace(/^(\s*)[-+*]\s+/u, "$1• ");
+      }
+      parsed = parseInlineMarkdown(source, lineStart);
+    }
+
+    output.push(parsed.text);
+    outputLength += parsed.text.length;
+    styles.push(...parsed.styles);
+    for (const st of headingStyles) {
+      if (parsed.text.length) styles.push({ start: lineStart, len: parsed.text.length, st });
+    }
+    const numbered = parsed.text.match(/^\s*(\d+)\.\s+/u);
+    if (numbered) {
+      styles.push({
+        start: lineStart + parsed.text.indexOf(numbered[1]),
+        len: numbered[1].length,
+        st: ZALO_STYLES.EmeraldGreen,
+      });
+    }
+    if (index < lines.length - 1) {
+      output.push("\n");
+      outputLength += 1;
     }
   }
 
-  // 2. Color tags (Vietnamese and English, accented & unaccented)
-  replaceTag(/\[(?:RED|ĐỎ|DO)\]([\s\S]*?)\[\/(?:RED|ĐỎ|DO)\]/i, [ZALO_STYLES.Bold, ZALO_STYLES.RubyRed]);
-  replaceTag(/\[(?:GREEN|XANH)\]([\s\S]*?)\[\/(?:GREEN|XANH)\]/i, [ZALO_STYLES.Bold, ZALO_STYLES.EmeraldGreen]);
-  replaceTag(/\[(?:ORANGE|CAM)\]([\s\S]*?)\[\/(?:ORANGE|CAM)\]/i, [ZALO_STYLES.Bold, ZALO_STYLES.AmberOrange]);
-  replaceTag(/\[(?:YELLOW|VÀNG|VANG)\]([\s\S]*?)\[\/(?:YELLOW|VÀNG|VANG)\]/i, [ZALO_STYLES.Bold, ZALO_STYLES.RoyalGold]);
-
-  // 3. Inline markdown tags
-  replaceTag(/\*\*([\s\S]*?)\*\*/g, [ZALO_STYLES.Bold]);
-  replaceTag(/__([\s\S]*?)__/g, [ZALO_STYLES.Underline]);
-  replaceTag(/~~([\s\S]*?)~~/g, [ZALO_STYLES.StrikeThrough]);
-  replaceTag(/\*([\s\S]*?)\*/g, [ZALO_STYLES.Italic]);
-
-  return { text, styles };
+  return { text: output.join("").replace(/\n{3,}/g, "\n\n"), styles };
 }
 
 /**
@@ -272,4 +412,9 @@ export function buildZaloStyledMessage(text, { maxStylesJsonLength = MAX_ZALO_ST
     msg: cleanText,
     styles: cappedStyles.length > 0 ? cappedStyles : undefined,
   };
+}
+
+export function formatAndChunkZaloMarkdown(text, options = {}) {
+  const parsed = parseMarkdownStyles(text);
+  return chunkZaloStyledText(parsed.text, parsed.styles, options);
 }

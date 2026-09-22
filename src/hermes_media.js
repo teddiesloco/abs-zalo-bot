@@ -29,13 +29,15 @@ export function extractAttachmentCandidates(content) {
   const visit = (value, depth = 0) => {
     if (!value || depth > 5 || typeof value !== "object") return;
     if (Array.isArray(value)) return value.forEach((item) => visit(item, depth + 1));
-    const url = [value.href, value.url, value.fileUrl, value.downloadUrl, value.voiceUrl, value.videoUrl]
-      .find((item) => typeof item === "string" && /^https?:\/\//i.test(item));
+    const url = [
+      value.href, value.url, value.fileUrl, value.downloadUrl, value.voiceUrl, value.videoUrl,
+      value.oriUrl, value.hdUrl, value.normalUrl, value.thumb, value.thumbUrl, value.previewThumb, value.rawUrl,
+    ].find((item) => typeof item === "string" && /^https?:\/\//i.test(item));
     if (url && !seen.has(url)) {
       seen.add(url);
       const name = safeName(value.fileName || value.name || value.title || path.basename(new URL(url).pathname), "attachment");
-      const raw = `${value.type || ""} ${value.action || ""} ${name}`.toLowerCase();
-      const kind = /video/.test(raw) ? "video" : /voice|audio/.test(raw) ? "audio" : /photo|image|thumb/.test(raw) ? "image" : "file";
+      const raw = `${value.type || ""} ${value.action || ""} ${name} ${new URL(url).hostname}`.toLowerCase();
+      const kind = /video|\.(?:mp4|mov|webm)$/u.test(raw) ? "video" : /voice|audio|\.(?:mp3|m4a|wav|aac)$/u.test(raw) ? "audio" : /photo|image|thumb|\.(?:jpe?g|png|webp|gif)$/u.test(raw) ? "image" : "file";
       results.push({ url, name, kind });
     }
     for (const child of Object.values(value)) visit(child, depth + 1);

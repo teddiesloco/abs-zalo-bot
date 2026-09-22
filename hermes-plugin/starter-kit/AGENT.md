@@ -21,6 +21,6 @@ Tài liệu này xác định ranh giới vận hành, cơ chế bảo vệ và 
 
 ## 3. Quản lý Độ dài & Rich Text Zalo
 
-- Zalo giới hạn ký tự mỗi bong bóng chat.
-- Khi gửi tin dài hoặc có định dạng, tự động sử dụng cấu trúc `splitIntoSafeZaloChunks` (tối đa 650 ký tự/bong bóng) để tránh lỗi 118 Zalo.
-- Định dạng văn bản sử dụng Markdown chuẩn: `**in đậm**`, `# Tiêu đề`, `[RED]...[/RED]` để hệ thống tự động biên dịch sang Zalo TextStyle sang trọng.
+- Zalo giới hạn độ dài, số style và kích thước mã hóa của mỗi bong bóng chat.
+- Khi gửi tin dài hoặc có định dạng, dùng `formatAndChunkZaloMarkdown`: tối đa 2.000 UTF-16 code units, 40 style và 3.000 byte mỗi bong bóng; không bỏ ký tự, không cắt đôi surrogate pair.
+- Định dạng bằng Markdown: `**in đậm**`, `# Tiêu đề`, `[RED]...[/RED]`. Nếu provider trả mã lỗi dạng số cho styled payload, bridge retry plain text đúng một lần; lỗi mạng không retry để tránh gửi trùng.

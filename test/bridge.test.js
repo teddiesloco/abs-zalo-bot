@@ -62,6 +62,39 @@ test("normalize + account_id required", () => {
   assert.throws(() => normalizeInboundMessage({ accountId: "", message: {} }));
 });
 
+test("quoted text and media enter only the normalized safe context", () => {
+  const event = normalizeInboundMessage({
+    accountId: "default",
+    message: {
+      type: 1,
+      threadId: "g1",
+      data: {
+        msgId: "m2",
+        uidFrom: "u1",
+        content: "Cái này còn hàng không?",
+        quote: {
+          msgId: "q1",
+          ownerId: "u2",
+          msg: "Ảnh áo dài xanh",
+          attach: JSON.stringify({
+            title: "ao-dai.jpg",
+            normalUrl: "https://photo-stal-17.zdn.vn/ao-dai.jpg",
+          }),
+        },
+      },
+    },
+  });
+  assert.equal(event.text, "[Trích dẫn] Ảnh áo dài xanh\nCái này còn hàng không?");
+  assert.equal(event.raw_metadata.quoted_message_id, "q1");
+  assert.equal(event.raw_metadata.quoted_author_id, "u2");
+  assert.deepEqual(event.attachment_candidates, [{
+    url: "https://photo-stal-17.zdn.vn/ao-dai.jpg",
+    name: "ao-dai.jpg",
+    kind: "image",
+  }]);
+  assert.equal(JSON.stringify(event.raw_metadata).includes("normalUrl"), false);
+});
+
 test("fail-closed not allowlisted when listen_all_groups off", () => {
   const { store, policy } = boot(
     tmpDir(),
