@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/abs-zalo-bot.svg?color=blue)](https://www.npmjs.com/package/abs-zalo-bot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Automated Tests](https://img.shields.io/badge/Tests-91%2F91%20Passing-brightgreen.svg)](test/)
+[![Automated Tests](https://img.shields.io/badge/Tests-138%2F138%20Passing-brightgreen.svg)](test/)
 [![AI Agent Ready](https://img.shields.io/badge/AI%20Agent-Hermes%20%7C%20Claude%20Code%20%7C%20Codex-purple.svg)](mcp/)
 [![Model Context Protocol](https://img.shields.io/badge/MCP-Standard%20v1.3.0-blueviolet.svg)](mcp/)
 
@@ -20,7 +20,7 @@ Install once · run with 1 command or browser QR · AI Agents connect via Model 
 | **Architecture** | **Dual-Adapter: Personal QR + Official OA (Webhook)** | Single unofficial scraping adapter |
 | **Safety & Privacy** | **Fail-Closed PolicyGuard + Secret Redaction** | No guardrails (high ban/checkpoint risk) |
 | **AI Integration** | **Native Model Context Protocol (MCP Stdio Server)** | Raw HTTP webhooks / Manual glue code |
-| **Code Quality** | **72/72 Automated Unit & Integration Tests** | Little to no test coverage |
+| **Code Quality** | **138/138 Automated Unit & Integration Tests** | Little to no test coverage |
 | **Multi-Agent Ready** | **Hermes Agent, Claude Code, OpenAI Codex, Cursor** | Single-system or standalone CLI only |
 
 ---
@@ -224,6 +224,20 @@ To enable, run 1 command:
 cp -R hermes-plugin/starter-kit/skills/* ~/.hermes/skills/
 cat hermes-plugin/starter-kit/SOUL.md >> ~/.hermes/SOUL.md
 ```
+
+---
+
+## 🆕 What's New in v0.11.0 (Hermes Platform & Enterprise Toolsets)
+
+> **Hermes Native Platform Release** — 1-click Hermes integration, dual-tier role-based security, live dashboard telemetry, and modular zero-bloat MCP extensibility.
+
+| Feature | Detail |
+| :--- | :--- |
+| **1-Click Hermes Installer** | Run `npm run install:hermes` to automatically detect Hermes layout, atomically merge `config.yaml`, and enable `platforms/zalo`. |
+| **Diagnostic Doctor** | Run `npm run doctor` to execute an 11-point health check verifying plugins, tokens, and bridge connectivity. |
+| **Dual-Tier Toolsets** | **Owner Mode (`zalo_owner`)**: Owner UID unlocks full Hermes terminal, file I/O, browser, and skills.<br>**Public Mode (`zalo_public`)**: Safe conversational tools only, blocking terminal and file tampering from strangers. |
+| **Live Dashboard Telemetry** | Full bi-directional event stream rendered in real-time on Hermes Agent Dashboard / Web UI. |
+| **Lean Modular Architecture** | Zero bloated dependencies in core. Connect any local or cloud tool (ZeroTTS, yt-dlp, deep research) on-demand via standard MCP. |
 
 ---
 

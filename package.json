@@ -1,6 +1,6 @@
 {
   "name": "abs-zalo-bot",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "type": "module",
   "description": "ABS Zalo Agent Engine — Free, Transparent & Autonomous Zalo AI Agent Engine for Hermes, Claude Code & Codex. Dual Personal QR + Official OA, Group Administration, Lead Intel, Polls, Reactions & MCP Server.",
   "author": "teddiesloco",
@@ -39,6 +39,8 @@
   "files": [
     "src/",
     "mcp/",
+    "scripts/",
+    "hermes-plugin/",
     "README.md",
     "LICENSE",
     "package.json"
@@ -47,7 +49,10 @@
     "start": "node src/server.js",
     "test": "node --test",
     "test:coverage": "node --test --experimental-test-coverage",
-    "lint": "node --check src/*.js test/*.js"
+    "lint": "node --check src/*.js test/*.js",
+    "install:hermes": "node scripts/install-hermes.js",
+    "doctor": "node scripts/doctor.js",
+    "uninstall:hermes": "node scripts/uninstall-hermes.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.0",
@@ -55,7 +60,8 @@
     "express": "^4.21.2",
     "qrcode-terminal": "^0.12.0",
     "ws": "^8.18.0",
-    "zca-js": "^1.7.0"
+    "yaml": "^2.7.0",
+    "zca-js": "^2.1.2"
   },
   "devDependencies": {
     "@types/node": "^22.13.9"

@@ -1,0 +1,39 @@
+name: zalo-tools
+label: Zalo Tools
+kind: standalone
+version: 1.10.10
+description: >
+  Bộ công cụ Zalo cho Hermes Agent — gửi tệp/thoại/sticker, đọc lịch sử
+  SQLite, tra web, tạo bình chọn, quản trị nhóm có xác nhận, và sổ hồ sơ
+  người quen.
+
+  Tách riêng khỏi plugin nền tảng `zalo-platform` vì Hermes nạp mọi plugin
+  `kind: platform` theo kiểu lười — chúng chỉ được import khi gateway thực sự
+  chạm tới nền tảng đó, tức là sau khi Hermes đã lập xong danh sách khoá
+  toolset. Công cụ đăng ký muộn như vậy không bao giờ được công nhận, và agent
+  lặng lẽ không nhìn thấy chúng.
+
+  Plugin `standalone` thì nạp ngay lúc khám phá, nên hai toolset `zalo_owner`
+  và `zalo_public` có mặt kịp lúc. Đổi lại nó phải được bật tay:
+
+      hermes plugins enable zalo-tools
+
+  Và phải khai hai toolset đó là "đã biết" trong config.yaml, nếu không Hermes
+  sẽ tự bật `zalo_owner` cho mọi phiên vì tưởng đây là plugin mới:
+
+      known_plugin_toolsets:
+        zalo:
+          - zalo_owner
+          - zalo_public
+          - zalo_cron
+author: ABS Ecosystem
+requires_env: []
+optional_env:
+  - name: ZALO_KB_DIR
+    description: "Thư mục kho tài liệu bot được phép đọc khi tư vấn"
+    prompt: "Đường dẫn kho tài liệu"
+    password: false
+  - name: ZALO_PEOPLE_FILE
+    description: "Nơi lưu sổ hồ sơ người quen (mặc định <hermes>/zalo/people.json)"
+    prompt: "Đường dẫn sổ hồ sơ"
+    password: false
