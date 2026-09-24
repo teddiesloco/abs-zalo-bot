@@ -28,18 +28,26 @@ function allowedUsers() {
 
 function gatewaySettings() {
   const groupMode = String(process.env.HERMES_ZALO_GROUP_MODE || "mention").trim();
+  const allowAllUsers = process.env.HERMES_ZALO_ALLOW_ALL === "true" || process.env.HERMES_ZALO_ALLOW_ALL_USERS === "true";
+  const allowAllThreads = process.env.HERMES_ZALO_ALLOW_ALL === "true" || process.env.HERMES_ZALO_ALLOW_ALL_THREADS === "true";
+  const threads = allowedThreads();
+  const users = allowedUsers();
   return {
     enabled: process.env.HERMES_ZALO_GATEWAY_ENABLED === "true",
     autoReply: process.env.HERMES_ZALO_ALLOW_AUTOREPLY === "true",
     groupMode: ["off", "mention", "all"].includes(groupMode) ? groupMode : "mention",
-    threads: allowedThreads(),
-    users: allowedUsers(),
+    allowAllUsers,
+    allowAllThreads,
+    threads,
+    users,
   };
 }
 
 function canDeliverInbound(row, settings) {
-  if (!settings.enabled || !settings.threads.size || !settings.users.size) return false;
-  if (row.is_self || !settings.threads.has(String(row.source_id)) || !settings.users.has(String(row.sender_id))) return false;
+  if (!settings.enabled) return false;
+  if (!settings.allowAllThreads && (!settings.threads.size || !settings.threads.has(String(row.source_id)))) return false;
+  if (!settings.allowAllUsers && (!settings.users.size || !settings.users.has(String(row.sender_id)))) return false;
+  if (row.is_self) return false;
   if (row.source_type !== "group") return true;
   if (settings.groupMode === "all") return true;
   return settings.groupMode === "mention" && Boolean(row.is_mention);
@@ -110,9 +118,10 @@ export function createHermesBridge({ config, store, hub }) {
     async sendMessage({ threadId, text, replyTo = null, threadType = null } = {}) {
       const thread = String(threadId || "").trim();
       const body = String(text || "").trim();
-      if (!thread || !body) throw new Error("invalid_message");
-      if (!gatewaySettings().enabled || !gatewaySettings().autoReply) throw new Error("gateway_autoreply_disabled");
-      if (!allowedThreads().has(thread)) throw new Error("thread_not_allowlisted");
+      if (!thread || !body || body.length > 4000) throw new Error("invalid_message");
+      const settings = gatewaySettings();
+      if (!settings.enabled || !settings.autoReply) throw new Error("gateway_autoreply_disabled");
+      if (!settings.allowAllThreads && !allowedThreads().has(thread)) throw new Error("thread_not_allowlisted");
       const runtime = hub.getRuntime(accountId());
       const source = store.listSources(accountId()).find((item) => String(item.source_id) === thread);
       const resolvedThreadType = Number(threadType) === 0 ? 0 : source?.source_type === "dm" ? 0 : 1;
@@ -128,8 +137,9 @@ export function createHermesBridge({ config, store, hub }) {
     },
     async typing({ threadId, threadType = null } = {}) {
       const thread = String(threadId || "").trim();
-      if (!gatewaySettings().enabled || !gatewaySettings().autoReply) throw new Error("gateway_autoreply_disabled");
-      if (!thread || !allowedThreads().has(thread)) throw new Error("thread_not_allowlisted");
+      const settings = gatewaySettings();
+      if (!settings.enabled || !settings.autoReply) throw new Error("gateway_autoreply_disabled");
+      if (!thread || (!settings.allowAllThreads && !allowedThreads().has(thread))) throw new Error("thread_not_allowlisted");
       const source = store.listSources(accountId()).find((item) => String(item.source_id) === thread);
       const resolvedThreadType = Number(threadType) === 0 ? 0 : source?.source_type === "dm" ? 0 : 1;
       await hub.getRuntime(accountId()).performPersonalAction("typing", { thread_id: thread, thread_type: resolvedThreadType });

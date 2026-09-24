@@ -1,6 +1,7 @@
 // Shared constants + pure helpers. No secrets. No network.
 import crypto from "node:crypto";
 import { extractAttachmentCandidates } from "./hermes_media.js";
+import { extractQuote, enrichTextWithQuote } from "./quote_resolver.js";
 
 export const ACCOUNT_STATUSES = Object.freeze([
   "disconnected",
@@ -142,16 +143,20 @@ export function normalizeInboundMessage({ accountId, message, sourceName = "" })
   const senderName = String(data.dName ?? data.displayName ?? data.senderName ?? "");
   const content = data.content;
   const messageType = classifyMessageType(content);
-  const ownText = extractText(content);
+  const rawText = extractText(content);
+  const ownText = rawText;
   const quotedText = quoteText(data.quote);
+  const quoteObj = extractQuote(data.quote);
   const text = quotedText ? `[Trích dẫn] ${quotedText}\n${ownText}`.trim() : ownText;
   const createdAt = data.ts
     ? new Date(Number(data.ts) || data.ts).toISOString()
     : utcNow();
   const isSelf = Boolean(message.isSelf);
+  const isQuoteOfSelf = Boolean(quoteObj?.authorId && String(quoteObj.authorId) === String(accountId));
   const isMention =
     Boolean(data.mentions?.length) ||
     Boolean(data.quote) ||
+    isQuoteOfSelf ||
     /@/.test(text);
 
   const eventId = stableEventId([
@@ -175,14 +180,17 @@ export function normalizeInboundMessage({ accountId, message, sourceName = "" })
     message_id: messageId || eventId,
     message_type: messageType,
     text,
+    raw_text: rawText,
     is_self: isSelf,
     is_mention: isMention,
+    quote: quoteObj,
     raw_metadata: {
       thread_type: message.type,
       cli_msg_id: data.cliMsgId ?? null,
       has_quote: Boolean(data.quote),
       quoted_message_id: data.quote?.msgId ? String(data.quote.msgId) : null,
       quoted_author_id: data.quote?.ownerId ? String(data.quote.ownerId) : null,
+      quote: quoteObj,
       mention_count: Array.isArray(data.mentions) ? data.mentions.length : 0,
     },
     // Ephemeral only: AccountRuntime stages approved media and removes URLs

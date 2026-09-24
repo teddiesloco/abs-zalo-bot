@@ -67,3 +67,17 @@ test("createMemberDirectory caches and returns group members", async () => {
   const mems3 = await dir.get("g1");
   assert.equal(callCount, 2); // fetched after clear
 });
+
+test("findMentions parses @All and @all as uid -1", () => {
+  const members = [{ uid: "u123", name: "Teddy" }];
+  const text = "Thông báo khẩn @All mọi người tập hợp!";
+  const mentions = findMentions(text, members);
+  assert.equal(mentions.length, 1);
+  assert.equal(mentions[0].uid, "-1");
+  assert.equal(mentions[0].len, "@All".length);
+
+  const textLower = "Alo @all ơi";
+  const mentionsLower = findMentions(textLower, members);
+  assert.equal(mentionsLower.length, 1);
+  assert.equal(mentionsLower[0].uid, "-1");
+});

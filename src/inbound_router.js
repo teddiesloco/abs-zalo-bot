@@ -209,16 +209,19 @@ export async function handleBotBrainCommand({
     brainMeta = { used: false, reason: brain.reason || "brain_fail", manual_review: brain.manual_review };
   }
 
+  const targetId = event.source_id || dest.group_id;
+  const threadType = event.source_type === "dm" ? 0 : 1;
   const decision = policy.evaluateOutbound({
     accountId,
-    targetId: dest.group_id,
+    targetId,
     text: answer,
     kind: "ask_reply",
+    allowSource: true,
   });
   if (!decision.allow) {
     store.logOutbound({
       accountId,
-      targetId: dest.group_id,
+      targetId,
       kind: "ask_reply",
       textSha: sha256(answer),
       ok: false,
@@ -240,7 +243,7 @@ export async function handleBotBrainCommand({
   if (process.env.ALLOW_FAKE_SEND === "true" && !runtime.api) {
     store.logOutbound({
       accountId,
-      targetId: dest.group_id,
+      targetId,
       kind: "ask_reply",
       textSha: decision.textSha || sha256(answer),
       ok: true,
@@ -256,10 +259,14 @@ export async function handleBotBrainCommand({
   }
 
   try {
-    await runtime.sendText(dest.group_id, answer, 1);
+    await runtime.sendText(targetId, answer, threadType, {
+      quote: event.quote?.id ? { msgId: event.quote.id, ownerId: event.quote.authorId } : undefined,
+      styled: true,
+      allow_source: true,
+    });
     store.logOutbound({
       accountId,
-      targetId: dest.group_id,
+      targetId,
       kind: "ask_reply",
       textSha: decision.textSha || sha256(answer),
       ok: true,
@@ -267,7 +274,7 @@ export async function handleBotBrainCommand({
     });
     store.putReport({
       account_id: accountId,
-      destination_source_id: dest.group_id,
+      destination_source_id: targetId,
       report_type: "bot_cmd",
       period_start: since,
       period_end: utcNow(),

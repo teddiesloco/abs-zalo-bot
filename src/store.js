@@ -778,6 +778,30 @@ export class Store {
     try { return JSON.parse(row.metadata_json || "{}"); } catch { return null; }
   }
 
+  getLastSentMessage(accountId, sourceId) {
+    const row = this.db
+      .prepare(
+        `SELECT message_id, metadata_json, created_at
+         FROM zalo_messages
+         WHERE account_id=? AND source_id=? AND is_self=1
+         ORDER BY created_at DESC
+         LIMIT 1`,
+      )
+      .get(String(accountId), String(sourceId));
+    if (!row) return null;
+    let meta = {};
+    try {
+      meta = JSON.parse(row.metadata_json || "{}");
+    } catch {
+      meta = {};
+    }
+    return {
+      messageId: row.message_id,
+      cliMsgId: meta.cli_msg_id ?? null,
+      createdAt: row.created_at,
+    };
+  }
+
   countEvents(accountId = null) {
     if (accountId) {
       return this.db

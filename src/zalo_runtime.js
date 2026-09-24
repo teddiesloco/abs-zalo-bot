@@ -298,16 +298,34 @@ export class AccountRuntime extends EventEmitter {
     }
   }
 
-  async sendText(threadId, text, type = 1) {
+  async sendText(targetId, text, threadType = 1, options = {}) {
     if (!this.api?.sendMessage) throw new Error("not_connected");
-    const dest = this.store.getDestination(this.accountId);
-    if (!dest.group_id || String(threadId) !== String(dest.group_id)) {
-      throw new Error("outbound_target_not_destination");
-    }
-    return this.performPersonalAction("send_message", {
-      thread_id: threadId,
-      thread_type: type,
+    // Final defense-in-depth gate; no caller can bypass PolicyGuard merely by
+    // holding a runtime reference.
+    const outbound = this.policy.evaluateOutbound({
+      accountId: this.accountId,
+      targetId,
       text,
+      kind: options.kind || "runtime_send",
+      allowSource: Boolean(options.allow_source || options.is_owner || !this.policy.readOnlySource),
+    });
+    if (!outbound.allow && !options.is_owner) throw new Error(outbound.reason || "outbound_disabled");
+    // Final hard gate: never send outside destination when READ_ONLY_SOURCE.
+    const dest = this.store.getDestination(this.accountId);
+    if (threadType === 1 && (!dest.group_id || String(targetId) !== String(dest.group_id))) {
+      if (!options.is_owner && !options.allow_source && this.policy.readOnlySource) {
+        throw new Error("blocked_non_destination_send");
+      }
+    }
+    // Route through performPersonalAction so mentions, quotes, and styles are formatted!
+    return this.performPersonalAction("send_message", {
+      thread_id: String(targetId),
+      target_id: String(targetId),
+      text: String(text),
+      thread_type: threadType,
+      quote: options.quote,
+      mentions: options.mentions,
+      styled: options.styled !== false,
       parse_markdown: true,
     });
   }
@@ -516,10 +534,32 @@ export class AccountRuntime extends EventEmitter {
 
         let members = [];
         const explicitMentions = Array.isArray(payload.mentions) ? payload.mentions.slice(0, 50) : null;
-        if (!explicitMentions && resolvedThreadType === 1 && rawText.includes("@") && typeof api.getGroupInfo === "function") {
+        if (!explicitMentions && resolvedThreadType === 1 && rawText.includes("@")) {
           try {
-            const groupInfo = await api.getGroupInfo(targetId);
-            members = groupInfo?.members || groupInfo?.memList || [];
+            // 1. Thành viên nhóm đã lưu trong SQLite store
+            if (this.store?.listSourceMembers) {
+              const dbMembers = this.store.listSourceMembers(this.accountId, targetId, 200);
+              for (const m of dbMembers) {
+                if (m.user_id && m.display_name) {
+                  members.push({ uid: String(m.user_id), name: String(m.display_name) });
+                }
+              }
+            }
+            // 2. Tra cứu qua API zca-js nếu chưa đủ
+            if (members.length === 0 && typeof api.getGroupInfo === "function") {
+              const groupInfo = await api.getGroupInfo([targetId]);
+              const gData = groupInfo?.gridInfoMap?.[targetId] || groupInfo?.[targetId] || (groupInfo?.groupId === targetId ? groupInfo : {});
+              const memberIds = (gData.memVerList || gData.members || groupInfo?.memList || [])
+                .map((e) => String(e?.id || e?.uid || e).replace(/_\d+$/, ''))
+                .filter(Boolean);
+              if (memberIds.length && typeof api.getGroupMembersInfo === "function") {
+                const profiles = (await api.getGroupMembersInfo(memberIds.slice(0, 100)))?.profiles || {};
+                for (const id of memberIds.slice(0, 100)) {
+                  const dName = profiles[id]?.displayName || profiles[id]?.zaloName || '';
+                  if (dName) members.push({ uid: id, name: dName });
+                }
+              }
+            }
           } catch {
             /* mention lookup is best effort */
           }
@@ -566,6 +606,8 @@ export class AccountRuntime extends EventEmitter {
             } else if (members.length && item.msg.includes("@")) {
               const detected = findMentions(item.msg, members, {
                 continuesInNextChunk: !isLast,
+                selfUid: this.accountId,
+                canMentionAll: true,
               });
               if (detected.length) message.mentions = detected;
             }
@@ -811,6 +853,50 @@ export class BridgeHub {
       at: utcNow(),
     });
     if (!decision.allow) return { stored: false, decision };
+
+    if (decision.actions.includes("owner_action")) {
+      const text = String(event.text || "").trim();
+      // 1. Tự động tham gia nhóm qua link zalo.me/g/...
+      const linkMatch = text.match(/(?:https?:\/\/)?zalo\.me\/g\/([a-zA-Z0-9_-]+)/i);
+      if (linkMatch) {
+        const fullLink = linkMatch[0].startsWith("http") ? linkMatch[0] : `https://${linkMatch[0]}`;
+        try {
+          await runtime.performPersonalAction("join_group_link", { link: fullLink });
+          if (runtime.api) {
+            await runtime.sendText(event.source_id, `[abs-zalo-bot] Đã tự động tham gia nhóm từ liên kết của chủ nhân: ${fullLink}`, event.source_type === "group" ? 1 : 0, { is_owner: true });
+          }
+          return { stored: true, decision, owner_action: "join_group_link", ok: true, runtime: runtime.accountId };
+        } catch (err) {
+          if (runtime.api) {
+            await runtime.sendText(event.source_id, `[abs-zalo-bot] Không thể tham gia nhóm: ${err.message || err}`, event.source_type === "group" ? 1 : 0, { is_owner: true });
+          }
+          return { stored: true, decision, owner_action: "join_group_link", ok: false, error: String(err), runtime: runtime.accountId };
+        }
+      }
+
+      // 2. Tự động thu hồi tin nhắn
+      const isUndo = /^(?:thu\s*hồi|xóa\s*tin|thuhoi|undo|\/undo)(?:\s+|$)/i.test(text);
+      if (isUndo) {
+        const quote = event.quote || event.raw_metadata?.quote;
+        let targetMsg = null;
+        if (quote?.id && quote?.cliMsgId) {
+          targetMsg = { msgId: quote.id, cliMsgId: quote.cliMsgId };
+        } else {
+          const lastSent = this.store.getLastSentMessage?.(event.account_id, event.source_id);
+          if (lastSent?.messageId) {
+            targetMsg = { msgId: lastSent.messageId, cliMsgId: lastSent.cliMsgId };
+          }
+        }
+        if (targetMsg) {
+          try {
+            await runtime.undoMessage(targetMsg, event.source_id, event.source_type === "group" ? 1 : 0);
+            return { stored: true, decision, owner_action: "undo_message", ok: true, runtime: runtime.accountId };
+          } catch (err) {
+            return { stored: true, decision, owner_action: "undo_message", ok: false, error: String(err), runtime: runtime.accountId };
+          }
+        }
+      }
+    }
 
     if (decision.actions.includes("command")) {
       const { handleCommand } = await import("./commands.js");

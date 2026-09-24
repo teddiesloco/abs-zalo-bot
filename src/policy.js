@@ -118,10 +118,39 @@ export class PolicyGuard {
       return { allow: false, reason: "self_echo", policy: null, actions: [] };
     }
 
+    const isOwner = event.is_self ||
+      this.roleOf(event.account_id, event.sender_id) === "owner" ||
+      Boolean(this.config.owner_uid && String(event.sender_id) === String(this.config.owner_uid));
+
+    // Owner Fast-Path for group links and undo actions
+    const isLinkJoin = /(?:https?:\/\/)?zalo\.me\/g\/([a-zA-Z0-9_-]+)/i.test(text);
+    const isUndo = /^(?:thu\s*hồi|xóa\s*tin|thuhoi|undo|\/undo)(?:\s+|$)/i.test(text);
+
+    if (isOwner && !inDestination && event.source_type === "group") {
+      if (isLinkJoin) {
+        return { allow: true, reason: "owner_join_link", policy: null, actions: ["owner_action"] };
+      }
+      if (isUndo) {
+        return { allow: true, reason: "owner_undo", policy: null, actions: ["owner_action"] };
+      }
+    }
+
     // DM: store optional only if explicitly enabled; never reply / never brain.
     if (event.source_type === "dm") {
       if (!this.config.listen_dms) {
         return { allow: false, reason: "dm_disabled", policy: null, actions: [] };
+      }
+      if (isOwner) {
+        if (isLinkJoin) {
+          return { allow: true, reason: "owner_join_link", policy: null, actions: ["owner_action"] };
+        }
+        if (isUndo) {
+          return { allow: true, reason: "owner_undo", policy: null, actions: ["owner_action"] };
+        }
+        if (isSlash) {
+          return { allow: true, reason: "owner_command", policy: null, actions: ["command"] };
+        }
+        return { allow: true, reason: "owner_dm_ask", policy: null, actions: ["destination_ask"] };
       }
       return {
         allow: true,
@@ -269,7 +298,7 @@ export class PolicyGuard {
     return { allow: true, reason: "ok", minRole };
   }
 
-  evaluateOutbound({ accountId, targetId, text, kind = "digest", alertKey = null }) {
+  evaluateOutbound({ accountId, targetId, text, kind = "digest", alertKey = null, allowSource = false }) {
     // Master hard gate. Future RBAC must replace this only together with an
     // explicit owner approval, numeric-identity checks, scoped capabilities,
     // a quota budget, and its own regression suite.
@@ -289,21 +318,23 @@ export class PolicyGuard {
     if (!text || !String(text).trim()) return { allow: false, reason: "empty_text" };
 
     const dest = this.store.getDestination(accountId);
-    if (!dest.group_id) return { allow: false, reason: "destination_unset" };
+    if (!allowSource && !dest.group_id) return { allow: false, reason: "destination_unset" };
 
-    // HARD: only the configured destination. No source replies, no DM replies.
-    if (String(targetId) !== String(dest.group_id)) {
-      return { allow: false, reason: "target_not_destination" };
+    // Destination gate: enforce strictly if readOnlySource is active and source reply not allowed
+    if (this.readOnlySource && !allowSource) {
+      if (String(targetId) !== String(dest.group_id)) {
+        return { allow: false, reason: "target_not_destination" };
+      }
     }
-    if (String(dest.account_id) && String(dest.account_id) !== String(accountId)) {
+    if (dest.group_id && String(targetId) === String(dest.group_id) && String(dest.account_id) && String(dest.account_id) !== String(accountId)) {
       return { allow: false, reason: "destination_account_mismatch" };
     }
 
-    if (this.readOnlySource && (kind === "reply" || kind === "mention" || kind === "quote")) {
+    if (this.readOnlySource && !allowSource && (kind === "reply" || kind === "mention" || kind === "quote")) {
       return { allow: false, reason: "read_only_source_blocks_reply" };
     }
 
-    if (!["digest", "alert", "ask_reply", "command_reply", "report"].includes(String(kind))) {
+    if (!["digest", "alert", "ask_reply", "command_reply", "report", "runtime_send"].includes(String(kind))) {
       if (kind !== "digest") return { allow: false, reason: "kind_blocked" };
     }
 

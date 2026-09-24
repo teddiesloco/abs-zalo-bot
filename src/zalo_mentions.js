@@ -7,6 +7,8 @@
 
 const NAME_CHAR = /[\p{L}\p{N}_]/u;
 const NAME_CONTINUES = /^ \p{Lu}/u;
+const MENTION_ALL = /^all(?![\p{L}\p{N}_])/iu;
+export const MENTION_ALL_UID = "-1";
 
 function normalize(text) {
   return String(text || "").toLocaleLowerCase("vi");
@@ -15,15 +17,16 @@ function normalize(text) {
 /**
  * @param {string} msg Chữ đã qua bộ dịch Markdown (vị trí tính trên chuỗi này).
  * @param {{uid: string, name: string}[]} members
- * @param {{selfUid?: string, continuesInNextChunk?: boolean}} options
+ * @param {{selfUid?: string, continuesInNextChunk?: boolean, canMentionAll?: boolean}} options
  * @returns {{pos: number, len: number, uid: string}[]}
  */
-export function findMentions(msg, members, { selfUid = "", continuesInNextChunk = false } = {}) {
+export function findMentions(msg, members, { selfUid = "", continuesInNextChunk = false, canMentionAll = true } = {}) {
   const text = String(msg ?? "");
-  if (!text.includes("@") || !Array.isArray(members) || !members.length) return [];
+  const people = Array.isArray(members) ? members : [];
+  if (!text.includes("@") || (!people.length && !canMentionAll)) return [];
 
   const uidsByName = new Map();
-  for (const member of members) {
+  for (const member of people) {
     const uid = String(member?.uid ?? member?.userId ?? member?.id ?? "");
     const name = String(member?.name ?? member?.displayName ?? member?.dName ?? "").trim();
     if (!uid || !name || uid === String(selfUid)) continue;
@@ -39,6 +42,11 @@ export function findMentions(msg, members, { selfUid = "", continuesInNextChunk 
   const mentions = [];
   for (let at = text.indexOf("@"); at !== -1; at = text.indexOf("@", at + 1)) {
     if (at > 0 && NAME_CHAR.test(text[at - 1])) continue; // a@b trong email
+    if (canMentionAll && MENTION_ALL.test(text.slice(at + 1))) {
+      mentions.push({ pos: at, len: "@All".length, uid: MENTION_ALL_UID });
+      at += "All".length;
+      continue;
+    }
     const match = names.find(([key, { length }]) => {
       const after = text.slice(at + 1 + length);
       return (

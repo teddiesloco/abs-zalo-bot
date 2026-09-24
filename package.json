@@ -1,6 +1,6 @@
 {
   "name": "abs-zalo-bot",
-  "version": "0.9.2",
+  "version": "0.10.0",
   "type": "module",
   "description": "ABS Zalo Agent Engine — Free, Transparent & Autonomous Zalo AI Agent Engine for Hermes, Claude Code & Codex. Dual Personal QR + Official OA, Group Administration, Lead Intel, Polls, Reactions & MCP Server.",
   "author": "teddiesloco",
@@ -15,15 +15,15 @@
     "claude-code",
     "codex",
     "mcp",
-    "model-context-protocol",
-    "zca-js",
-    "chatbot",
-    "lead-generation",
-    "vietnam",
+    "mcp-server",
+    "personal-zalo",
     "official-account",
-    "personal-qr",
+    "automation",
+    "lead-generation",
+    "customer-support",
+    "community-management",
     "autonomous-agent",
-    "open-source"
+    "abs-engine"
   ],
   "homepage": "https://github.com/teddiesloco/abs-zalo-bot#readme",
   "repository": {
@@ -33,60 +33,37 @@
   "bugs": {
     "url": "https://github.com/teddiesloco/abs-zalo-bot/issues"
   },
-  "files": [
-    "src/",
-    "mcp/",
-    "scripts/",
-    "hermes-plugin/",
-    "config/bots.example.json",
-    "config.toml",
-    ".env.example",
-    "setup.bat",
-    "start.bat",
-    "setup.ps1",
-    "install.sh",
-    "setup.sh",
-    "Dockerfile",
-    "docker-compose.yml",
-    "README.md",
-    "SECURITY.md",
-    "LICENSE"
-  ],
   "bin": {
     "zalo-personal-mcp": "mcp/server.js"
   },
+  "files": [
+    "src/",
+    "mcp/",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
   "scripts": {
-    "start": "node src/cli.js serve",
-    "dev": "node --watch src/cli.js serve",
-    "self-check": "node src/cli.js self-check",
-    "status": "node src/cli.js status",
-    "qr": "node src/cli.js qr",
-    "onboarding": "node src/cli.js onboarding",
-    "digest": "node src/cli.js digest",
-    "backfill": "node src/cli.js backfill",
-    "mcp": "node mcp/server.js",
-    "setup": "node scripts/setup.js setup",
-    "install:locked": "npm ci",
-    "doctor": "node scripts/setup.js doctor",
-    "dashboard-info": "node scripts/setup.js dashboard-info",
-    "smoke": "node scripts/battle-smoke.js",
-    "battle": "node scripts/battle-smoke.js",
-    "validate-config": "node scripts/public-gate.js validate-config",
-    "secret-scan": "node scripts/public-gate.js secret-scan",
-    "syntax-check": "node scripts/public-gate.js syntax-check",
-    "test": "node --test test/*.test.js",
-    "cold": "npm test && npm run validate-config && npm run secret-scan && npm run syntax-check && npm run self-check && npm run smoke"
-  },
-  "engines": {
-    "node": ">=22.5"
+    "start": "node src/server.js",
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage",
+    "lint": "node --check src/*.js test/*.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.30.0",
+    "@modelcontextprotocol/sdk": "^1.27.0",
+    "better-sqlite3": "^11.8.1",
     "express": "^4.21.2",
-    "zca-js": "2.1.2",
-    "zod": "3.25.76"
+    "qrcode-terminal": "^0.12.0",
+    "ws": "^8.18.0",
+    "zca-js": "^1.7.0"
   },
-  "overrides": {
-    "@hono/node-server": "2.1.0"
+  "devDependencies": {
+    "@types/node": "^22.13.9"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -63,7 +63,7 @@ function verifyConfirmation(code, action, targetKey) {
 
 const BRIDGE_URL = (process.env.ZALO_BRIDGE_URL || "http://127.0.0.1:3871").replace(/\/$/, "");
 const TOKEN = process.env.DASHBOARD_TOKEN || process.env.ZALO_BRIDGE_TOKEN || "";
-const TOOL_PACK = normalizeToolPack(process.env.ABS_ZALO_TOOL_PACK || "reader");
+const TOOL_PACK = normalizeToolPack(process.env.ABS_ZALO_TOOL_PACK || "admin");
 
 function log(...args) {
   console.error("[abs-zalo-mcp]", ...args);

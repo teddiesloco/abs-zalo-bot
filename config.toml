@@ -1,19 +1,21 @@
-# ABS-Zalo-Bot demo-safe local configuration.
-# Real destination/group/user IDs belong in runtime data or a private config.
+# ABS-Zalo-Bot configuration — Full Power AI Agent Mode
+# Plug-and-play for Hermes Agent, Claude Code & Codex
 
 default_account_id = "default"
 phone_label = ""
 retention_days = 30
 
-# Personal adapter: full capture, absolute silence. No inbound message may
-# invoke a model, skill, MCP workflow, command, digest, alert, or send.
-read_only_source = true
+# Full Interaction Mode: Auto-reply on mention, quote and DM
+read_only_source = false
 listen_self = false
 listen_all_groups = true
 listen_dms = true
-listener_only = true
+listener_only = false
 auto_alert = false
-auto_reply_default = false
+auto_reply_default = true
+mention_reply = true
+quote_reply = true
+dm_reply = true
 
 dashboard_bind = "127.0.0.1"
 dashboard_port = 3871
