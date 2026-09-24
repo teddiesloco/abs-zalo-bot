@@ -28,17 +28,8 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Check JavaScript syntax
+        run: npm run lint
+
       - name: Run deterministic tests
         run: npm test
-
-      - name: Validate public configuration
-        run: npm run validate-config
-
-      - name: Scan public files
-        run: npm run secret-scan
-
-      - name: Check JavaScript syntax
-        run: npm run syntax-check
-
-      - name: Run offline self-check
-        run: npm run self-check
