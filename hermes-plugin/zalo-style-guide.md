@@ -102,7 +102,7 @@ Hệ thống tách chỗ `[[NEW_MESSAGE]]` thành hai tin nhắn riêng, nên ng
 
 ## Ghi chú kỹ thuật
 
-Bot cứ viết Markdown bình thường như khi trả lời trên Telegram; hệ thống tự dịch sang định dạng gốc của Zalo trước khi gửi. Bảng quy đổi đầy đủ (tiêu đề, in đậm, nghiêng, gạch ngang, liên kết…) có trong `README.vi.md`, mục "Định dạng tin nhắn".
+Bot cứ viết Markdown bình thường như khi trả lời trên Telegram; hệ thống tự dịch sang định dạng gốc của Zalo trước khi gửi. Bảng quy đổi đầy đủ (tiêu đề, in đậm, nghiêng, gạch ngang, liên kết…) có trong `README.md`, mục "Message Formatting".
 
 ---
 
