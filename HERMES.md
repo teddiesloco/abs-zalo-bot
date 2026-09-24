@@ -29,6 +29,35 @@ Runs an 11-point diagnostic check covering layout, platform plugins, token secur
 
 ---
 
+## 🧠 LLM Model Setup: Direct API Key vs. OAuth Subscription Proxies
+
+Hermes Agent gives you complete freedom to power your Zalo AI using either direct paid API keys or subscription proxies:
+
+### Track 1: Direct API Key (BYOK)
+If you have official API keys from Anthropic, OpenAI, Google, DeepSeek, or OpenRouter:
+```yaml
+# In ~/.hermes/config.yaml
+model: anthropic/claude-3-7-sonnet  # or openai/gpt-4o, gemini/gemini-2.5-flash
+```
+Add your key to `~/.hermes/.env`:
+```env
+ANTHROPIC_API_KEY=sk-ant-...
+# or OPENAI_API_KEY=sk-... / GEMINI_API_KEY=...
+```
+
+### Track 2: OAuth Subscription Proxies (9Router / Cockpit Proxy / Omnirouter)
+If you utilize flat-rate subscriptions (Claude Pro/Max, ChatGPT Plus, Gemini Advanced) routed through an OAuth reverse proxy gateway (**9Router**, **Cockpit Proxy**, **Omnirouter**, **LiteLLM**):
+```yaml
+# In ~/.hermes/config.yaml
+provider: custom
+model: custom/claude-3-7-sonnet     # or your proxy model alias
+base_url: http://127.0.0.1:8181/v1  # Your local 9Router / Cockpit / Omnirouter endpoint
+api_key: dummy                      # or your proxy authentication token
+```
+*💡 **Power User Advantage**: 0 token fees, unlimited multi-turn thinking loops, and maximum reasoning depth on Zalo without surprise pay-as-you-go bills.*
+
+---
+
 ## 🛡️ Dual-Tier Security Architecture
 
 Hermes Agent receives messages from Zalo and automatically enforces role-based tool authorization:

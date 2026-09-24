@@ -237,6 +237,7 @@ cat hermes-plugin/starter-kit/SOUL.md >> ~/.hermes/SOUL.md
 | **Diagnostic Doctor** | Run `npm run doctor` to execute an 11-point health check verifying plugins, tokens, and bridge connectivity. |
 | **Dual-Tier Toolsets** | **Owner Mode (`zalo_owner`)**: Owner UID unlocks full Hermes terminal, file I/O, browser, and skills.<br>**Public Mode (`zalo_public`)**: Safe conversational tools only, blocking terminal and file tampering from strangers. |
 | **Live Dashboard Telemetry** | Full bi-directional event stream rendered in real-time on Hermes Agent Dashboard / Web UI. |
+| **Dual LLM Model Setup** | **Direct API Keys (BYOK)**: Anthropic, OpenAI, Gemini AI Studio, DeepSeek.<br>**OAuth Subscription Proxies**: Connect flat-rate accounts via **9Router**, **Cockpit Proxy**, **Omnirouter**, or **LiteLLM** (`provider: custom`, `base_url: http://127.0.0.1:8181/v1`) for zero-token billing and unlimited reasoning! |
 | **Lean Modular Architecture** | Zero bloated dependencies in core. Connect any local or cloud tool (ZeroTTS, yt-dlp, deep research) on-demand via standard MCP. |
 
 ---
